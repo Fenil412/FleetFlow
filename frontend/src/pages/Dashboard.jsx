@@ -66,7 +66,6 @@ const Dashboard = () => {
                     value={stats.vehicles.total}
                     icon={Truck}
                     color="bg-blue-500"
-                    trend="+4.5% from last month"
                 />
                 <StatCard
                     title="Utilization"

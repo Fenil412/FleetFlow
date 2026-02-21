@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Navigation, MapPin, Calendar, CreditCard, ChevronRight, Package, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Navigation, MapPin, Calendar, Package, Loader2, XCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { formatSafeDate } from '../utils/dateUtils';
+import { useAuth } from '../features/auth/AuthContext';
 
 const Trips = () => {
+    const { user } = useAuth();
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -50,26 +53,54 @@ const Trips = () => {
 
     const handleCreateTrip = async (e) => {
         e.preventDefault();
+        const t = toast.loading('Initiating dispatch sequence...');
         try {
             await api.post('/trips', formData);
+            toast.success('Unit dispatched from HQ', { id: t });
             setShowDispatchModal(false);
             fetchTrips();
             setFormData({ vehicle_id: '', driver_id: '', origin: '', destination: '', cargo_details: '', cargo_weight_kg: 0 });
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to create trip');
+            toast.error(err.response?.data?.message || 'Dispatch failed', { id: t });
+        }
+    };
+
+    const handleDispatch = async (id) => {
+        const t = toast.loading('Sending authorization codes...');
+        try {
+            await api.patch(`/trips/${id}/dispatch`);
+            toast.success('Unit is now moving', { id: t });
+            fetchTrips();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Dispatch failed', { id: t });
         }
     };
 
     const handleComplete = async (id) => {
+        const t = toast.loading('Finalizing delivery...');
         try {
             await api.patch(`/trips/${id}/complete`);
+            toast.success('Trip logged as completed', { id: t });
             fetchTrips();
         } catch (err) {
-            alert('Failed to complete trip');
+            toast.error('Failed to complete trip', { id: t });
+        }
+    };
+
+    const handleCancel = async (id) => {
+        if (!window.confirm('Cancel and delete this trip?')) return;
+        const t = toast.loading('Cancelling trip...');
+        try {
+            await api.delete(`/trips/${id}`);
+            toast.success('Trip cancelled — resources released', { id: t });
+            fetchTrips();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to cancel trip', { id: t });
         }
     };
 
     const filteredTrips = trips.filter(t => statusFilter === 'ALL' || t.status === statusFilter);
+    const canDispatch = ['FLEET_MANAGER', 'DISPATCHER'].includes(user?.role_name);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -117,12 +148,12 @@ const Trips = () => {
                     <h3 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-2 mb-4">Active Deployments</h3>
                     {loading ? (
                         <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" size={32} /></div>
-                    ) : filteredTrips.filter(t => t.status === 'DISPATCHED').length === 0 ? (
+                    ) : filteredTrips.filter(t => t.status === 'DISPATCHED' || t.status === 'DRAFT').length === 0 ? (
                         <div className="bg-card border-2 border-dashed border-border rounded-3xl p-12 text-center">
                             <Package className="mx-auto text-text-secondary/30 mb-4" size={48} />
                             <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No matching active trips</p>
                         </div>
-                    ) : filteredTrips.filter(t => t.status === 'DISPATCHED').map((trip) => (
+                    ) : filteredTrips.filter(t => t.status === 'DISPATCHED' || t.status === 'DRAFT').map((trip) => (
                         <div key={trip.id} className="bg-card rounded-3xl p-6 shadow-sm border border-border relative overflow-hidden group hover:shadow-2xl transition-all duration-500">
                             <div className="absolute right-0 top-0 h-1 w-full bg-primary" />
                             <div className="flex items-start justify-between mb-6">
@@ -136,39 +167,52 @@ const Trips = () => {
                                     </div>
                                 </div>
                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ring-4 ${getStatusStyle(trip.status)}`}>
-                                    Live
+                                    {trip.status === 'DRAFT' ? 'Pending' : 'Live'}
                                 </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="bg-background/50 p-4 rounded-2xl border border-border">
                                     <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Assigned Vehicle</p>
-                                    <p className="font-bold text-text-primary truncate">{trip.vehicle_name || 'Heavy Unit A'}</p>
+                                    <p className="font-bold text-text-primary truncate">{trip.vehicle_name || 'N/A'}</p>
                                 </div>
                                 <div className="bg-background/50 p-4 rounded-2xl border border-border">
                                     <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Command Driver</p>
-                                    <p className="font-bold text-text-primary truncate">{trip.driver_name || 'Personnel 01'}</p>
+                                    <p className="font-bold text-text-primary truncate">{trip.driver_name || 'N/A'}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-between text-xs font-bold pt-4 border-t border-border">
                                 <div className="flex items-center text-text-secondary">
                                     <Calendar size={14} className="mr-2" />
-                                    Started: {format(new Date(trip.start_time), 'HH:mm | MMM d')}
+                                    {trip.status === 'DRAFT' ? 'Awaiting Dispatch' : `Started: ${formatSafeDate(trip.start_time, 'HH:mm | MMM d')}`}
                                 </div>
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleComplete(trip.id)}
-                                        className="text-success hover:text-white hover:bg-success border border-success/50 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all outline-none"
-                                    >
-                                        Complete
-                                    </button>
-                                    <button
-                                        onClick={() => alert(`Redirecting to trip FF-${trip.id} log...`)}
-                                        className="text-primary hover:text-text-primary transition-colors flex items-center uppercase tracking-widest outline-none"
-                                    >
-                                        Detail <ChevronRight size={14} className="ml-1" />
-                                    </button>
+                                    {canDispatch && trip.status === 'DRAFT' && (
+                                        <button
+                                            onClick={() => handleDispatch(trip.id)}
+                                            className="bg-primary text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all shadow-md hover:shadow-lg outline-none"
+                                        >
+                                            Authorize
+                                        </button>
+                                    )}
+                                    {canDispatch && trip.status === 'DISPATCHED' && (
+                                        <button
+                                            onClick={() => handleComplete(trip.id)}
+                                            className="text-success hover:text-white hover:bg-success border border-success/50 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all outline-none"
+                                        >
+                                            Complete
+                                        </button>
+                                    )}
+                                    {canDispatch && (
+                                        <button
+                                            onClick={() => handleCancel(trip.id)}
+                                            className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none"
+                                            title="Cancel Trip"
+                                        >
+                                            <XCircle size={16} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -177,6 +221,23 @@ const Trips = () => {
 
                 {/* Completed History Section */}
                 <div className="space-y-4 lg:border-l lg:pl-8 border-border">
+                    <h3 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-2 mb-4">Route Visualization</h3>
+
+                    {/* 🗺️ Dynamic Map Placeholder */}
+                    <div className="bg-card border border-border rounded-3xl p-6 mb-8 relative overflow-hidden h-48 group shadow-inner">
+                        <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <svg className="h-full w-full" viewBox="0 0 100 100">
+                                <path d="M10,10 L90,90 M10,90 L90,10 M50,0 L50,100 M0,50 L100,50" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                                <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                            </svg>
+                        </div>
+                        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center">
+                            <MapPin className="text-primary mb-2 animate-bounce" size={24} />
+                            <p className="text-xs font-black uppercase tracking-widest text-text-primary">Live Asset Mapping</p>
+                            <p className="text-[10px] text-text-secondary font-bold mt-1">Satellite tracking enabled for {filteredTrips.filter(t => t.status === 'DISPATCHED').length} active units</p>
+                        </div>
+                    </div>
+
                     <h3 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-2 mb-4">Operations History</h3>
                     <div className="space-y-3">
                         {filteredTrips.filter(t => t.status === 'COMPLETED').length === 0 ? (
@@ -193,7 +254,7 @@ const Trips = () => {
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-text-primary leading-none mb-1">{trip.origin} to {trip.destination}</p>
-                                        <p className="text-[10px] font-semibold text-text-secondary uppercase">{format(new Date(trip.end_time), 'MMM d, yyyy')}</p>
+                                        <p className="text-[10px] font-semibold text-text-secondary uppercase">{formatSafeDate(trip.end_time)}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">

@@ -13,7 +13,8 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import api from '../api/axios';
-import { Download, Filter, TrendingUp, TrendingDown } from 'lucide-react';
+import { Download, Filter, FileText, Table } from 'lucide-react';
+import { downloadCSV, downloadPDF } from '../utils/exportUtils';
 
 ChartJS.register(
     CategoryScale,
@@ -52,11 +53,11 @@ const Analytics = () => {
     }, []);
 
     const lineChartData = {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        labels: roiData.map(v => v.name),
         datasets: [
             {
-                label: 'Fuel Efficiency (km/L)',
-                data: [8.5, 9.0, 8.8, 9.2, 9.5, 9.3],
+                label: 'Operational ROI (%)',
+                data: roiData.map(v => parseFloat(v.roi_percentage) || 0),
                 borderColor: '#2563EB',
                 backgroundColor: 'rgba(37, 99, 235, 0.1)',
                 fill: true,
@@ -66,12 +67,12 @@ const Analytics = () => {
     };
 
     const barChartData = {
-        labels: roiData.map(v => v.name) || ['V1', 'V2', 'V3'],
+        labels: roiData.map(v => v.name),
         datasets: [
             {
                 label: 'Operational ROI (%)',
-                data: roiData.map(v => v.roi_percentage) || [45, 52, 38],
-                backgroundColor: '#3B82F6', // Primary Blue for better visibility in both themes
+                data: roiData.map(v => parseFloat(v.roi_percentage) || 0),
+                backgroundColor: '#3B82F6',
                 borderRadius: 12,
             },
         ],
@@ -112,10 +113,28 @@ const Analytics = () => {
                         <Filter size={18} />
                         Period
                     </button>
-                    <button className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 hover:-translate-y-0.5 transition-all outline-none">
-                        <Download size={18} />
-                        Export Report
-                    </button>
+                    <div className="relative group">
+                        <button className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 hover:-translate-y-0.5 transition-all outline-none">
+                            <Download size={18} />
+                            Export Data
+                        </button>
+                        <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2">
+                            <button
+                                onClick={() => downloadCSV(roiData, 'fleet_roi_report.csv')}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-text-primary hover:bg-background rounded-xl transition-colors"
+                            >
+                                <Table size={16} className="text-success" />
+                                Export as CSV
+                            </button>
+                            <button
+                                onClick={() => downloadPDF(roiData, 'FleetFlow ROI Analytics Report', 'fleet_roi_report.pdf')}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-text-primary hover:bg-background rounded-xl transition-colors"
+                            >
+                                <FileText size={16} className="text-danger" />
+                                Export as PDF
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -124,15 +143,16 @@ const Analytics = () => {
                 <div className="bg-card rounded-3xl p-8 shadow-sm border border-border">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h4 className="text-lg font-extrabold text-text-primary">Fuel Efficiency Trends</h4>
-                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest mt-1">Last 6 Months</p>
+                            <h4 className="text-lg font-extrabold text-text-primary">Vehicle ROI Distribution</h4>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest mt-1">Revenue vs Operational Costs</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-2xl font-black text-primary">9.3 <span className="text-xs font-bold text-text-secondary">avg</span></p>
-                            <div className="flex items-center text-success text-[10px] font-bold">
-                                <TrendingUp size={12} className="mr-1" />
-                                +12% vs LY
-                            </div>
+                            <p className="text-2xl font-black text-primary">
+                                {roiData.length > 0
+                                    ? `${(roiData.reduce((s, v) => s + parseFloat(v.roi_percentage || 0), 0) / roiData.length).toFixed(1)}%`
+                                    : '---'}
+                                <span className="text-xs font-bold text-text-secondary"> avg</span>
+                            </p>
                         </div>
                     </div>
                     <div className="h-64">
@@ -148,11 +168,12 @@ const Analytics = () => {
                             <p className="text-xs text-text-secondary font-bold uppercase tracking-widest mt-1">Based on Trip Revenue vs Service Costs</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-2xl font-black text-text-primary">42.5% <span className="text-xs font-bold text-text-secondary">avg</span></p>
-                            <div className="flex items-center text-danger text-[10px] font-bold">
-                                <TrendingDown size={12} className="mr-1" />
-                                -5% vs Target
-                            </div>
+                            <p className="text-2xl font-black text-text-primary">
+                                {roiData.length > 0
+                                    ? `${(roiData.reduce((s, v) => s + parseFloat(v.roi_percentage || 0), 0) / roiData.length).toFixed(1)}%`
+                                    : '---'}
+                                <span className="text-xs font-bold text-text-secondary"> avg</span>
+                            </p>
                         </div>
                     </div>
                     <div className="h-64">
@@ -162,6 +183,10 @@ const Analytics = () => {
                             <div className="h-full w-full bg-background rounded-2xl flex flex-col items-center justify-center p-6 text-center">
                                 <p className="text-sm font-bold text-text-secondary leading-relaxed">{error}</p>
                             </div>
+                        ) : roiData.length === 0 ? (
+                            <div className="h-full w-full bg-background rounded-2xl flex items-center justify-center">
+                                <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No ROI data yet</p>
+                            </div>
                         ) : (
                             <Bar data={barChartData} options={chartOptions} />
                         )}
@@ -169,27 +194,26 @@ const Analytics = () => {
                 </div>
             </div>
 
-            {/* Strategic Insights */}
-            <div className="bg-card rounded-3xl p-8 text-text-primary shadow-sm border border-border relative overflow-hidden">
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="space-y-2 border-l-2 border-primary pl-6">
-                        <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">Profitability Alert</p>
-                        <h5 className="text-lg font-bold">Aging Fleet Impact</h5>
-                        <p className="text-sm text-text-secondary">Vehicles over 5 years are showing 15% higher maintenance costs vs revenue growth.</p>
+            {roiData.length > 0 && (
+                <div className="bg-card rounded-3xl p-8 text-text-primary shadow-sm border border-border relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h4 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] mb-6">Top Performing Assets</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {roiData.slice(0, 3).map((v, i) => (
+                                <div key={v.id} className={`space-y-2 border-l-2 pl-6 ${i === 0 ? 'border-success' : i === 1 ? 'border-primary' : 'border-warning'}`}>
+                                    <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">{v.license_plate}</p>
+                                    <h5 className="text-lg font-bold">{v.name}</h5>
+                                    <p className="text-sm text-text-secondary">
+                                        ROI: <span className="font-black text-text-primary">{parseFloat(v.roi_percentage || 0).toFixed(1)}%</span>
+                                        &nbsp;· Revenue: <span className="font-black text-text-primary">${parseFloat(v.total_revenue || 0).toLocaleString()}</span>
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <div className="space-y-2 border-l-2 border-success pl-6">
-                        <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">Efficiency Gain</p>
-                        <h5 className="text-lg font-bold">Optimized Route Effect</h5>
-                        <p className="text-sm text-text-secondary">Recent dispatcher updates improved fuel efficiency by 0.5km/L across the fleet.</p>
-                    </div>
-                    <div className="space-y-2 border-l-2 border-warning pl-6">
-                        <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">Asset Utilization</p>
-                        <h5 className="text-lg font-bold">High Idle Warning</h5>
-                        <p className="text-sm text-text-secondary">4 vehicles had &gt;20% idle time last week. Operational review recommended.</p>
-                    </div>
+                    <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
                 </div>
-                <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-            </div>
+            )}
         </div>
     );
 };

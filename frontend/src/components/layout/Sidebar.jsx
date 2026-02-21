@@ -22,14 +22,18 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
     const { logout, user } = useAuth();
 
     const menuItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
-        { name: 'Vehicles', icon: Truck, path: '/vehicles' },
-        { name: 'Drivers', icon: Users, path: '/drivers' },
-        { name: 'Trips', icon: Navigation, path: '/trips' },
-        { name: 'Maintenance', icon: Wrench, path: '/maintenance' },
-        { name: 'Fuel Logs', icon: Fuel, path: '/fuel' },
-        { name: 'Analytics', icon: BarChart3, path: '/analytics' },
+        { name: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
+        { name: 'Vehicles', icon: Truck, path: '/vehicles', roles: ['FLEET_MANAGER', 'DISPATCHER'] },
+        { name: 'Drivers', icon: Users, path: '/drivers', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER'] },
+        { name: 'Trips', icon: Navigation, path: '/trips', roles: ['FLEET_MANAGER', 'DISPATCHER'] },
+        { name: 'Maintenance', icon: Wrench, path: '/maintenance', roles: ['FLEET_MANAGER', 'SAFETY_OFFICER'] },
+        { name: 'Fuel Logs', icon: Fuel, path: '/fuel', roles: ['FLEET_MANAGER', 'FINANCIAL_ANALYST'] },
+        { name: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['FLEET_MANAGER', 'FINANCIAL_ANALYST'] },
     ];
+
+    const filteredMenuItems = menuItems.filter(item =>
+        item.roles.includes(user?.role_name || user?.role)
+    );
 
     const sidebarClasses = `
     fixed inset-y-0 left-0 z-50 bg-card text-text-primary border-r border-border transition-all duration-300 ease-in-out
@@ -61,7 +65,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
 
                 {/* Navigation */}
                 <nav className="flex-1 space-y-2 px-3 py-4 overflow-y-auto custom-scrollbar">
-                    {menuItems.map((item) => (
+                    {filteredMenuItems.map((item) => (
                         <NavLink
                             key={item.name}
                             to={item.path}

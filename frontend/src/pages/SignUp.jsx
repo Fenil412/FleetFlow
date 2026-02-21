@@ -24,6 +24,7 @@ const SignUp = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState('DISPATCHER');
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -36,7 +37,7 @@ const SignUp = () => {
         setError('');
         setIsSubmitting(true);
 
-        const result = await signUp(name, email, password);
+        const result = await signUp(name, email, password, role);
 
         if (result.success) {
             navigate('/');
@@ -132,6 +133,20 @@ const SignUp = () => {
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-2 ml-1">Operational Role</label>
+                                    <select
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        className="block w-full rounded-xl border-0 bg-gray-50 pl-4 pr-10 py-3.5 text-navy ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-inset focus:ring-primary focus:bg-white transition-all outline-none appearance-none cursor-pointer font-bold"
+                                    >
+                                        <option value="FLEET_MANAGER">Fleet Manager</option>
+                                        <option value="DISPATCHER">Dispatcher</option>
+                                        <option value="SAFETY_OFFICER">Safety Officer</option>
+                                        <option value="FINANCIAL_ANALYST">Financial Analyst</option>
+                                    </select>
                                 </div>
                             </div>
 

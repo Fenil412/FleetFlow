@@ -1,0 +1,40 @@
+{
+  "name": "fleetflow",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "To replace inefficient, manual logbooks with a centralized, rule-based digital hub that optimizes the lifecycle of a delivery fleet, monitors driver safety, and tracks financial performance.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:init": "node scripts/init_db.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fenil412/FleetFlow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Fenil412/FleetFlow/issues"
+  },
+  "homepage": "https://github.com/Fenil412/FleetFlow#readme",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "pg": "^8.18.0",
+    "pg-pool": "^3.11.0",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

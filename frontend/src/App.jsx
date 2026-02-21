@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Suspense, lazy } from 'react';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -18,6 +19,7 @@ const SignUp = lazy(() => import('./pages/SignUp'));
 function App() {
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Toaster position="top-right" />
             <Suspense fallback={
                 <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
                     <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -33,12 +35,43 @@ function App() {
                             <DashboardLayout>
                                 <Routes>
                                     <Route path="/" element={<Dashboard />} />
-                                    <Route path="/vehicles" element={<Vehicles />} />
-                                    <Route path="/drivers" element={<Drivers />} />
-                                    <Route path="/trips" element={<Trips />} />
-                                    <Route path="/maintenance" element={<Maintenance />} />
-                                    <Route path="/fuel" element={<FuelLogs />} />
-                                    <Route path="/analytics" element={<Analytics />} />
+
+                                    <Route path="/vehicles" element={
+                                        <ProtectedRoute allowedRoles={['FLEET_MANAGER', 'DISPATCHER']}>
+                                            <Vehicles />
+                                        </ProtectedRoute>
+                                    } />
+
+                                    <Route path="/drivers" element={
+                                        <ProtectedRoute allowedRoles={['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER']}>
+                                            <Drivers />
+                                        </ProtectedRoute>
+                                    } />
+
+                                    <Route path="/trips" element={
+                                        <ProtectedRoute allowedRoles={['FLEET_MANAGER', 'DISPATCHER']}>
+                                            <Trips />
+                                        </ProtectedRoute>
+                                    } />
+
+                                    <Route path="/maintenance" element={
+                                        <ProtectedRoute allowedRoles={['FLEET_MANAGER', 'SAFETY_OFFICER']}>
+                                            <Maintenance />
+                                        </ProtectedRoute>
+                                    } />
+
+                                    <Route path="/fuel" element={
+                                        <ProtectedRoute allowedRoles={['FLEET_MANAGER', 'FINANCIAL_ANALYST']}>
+                                            <FuelLogs />
+                                        </ProtectedRoute>
+                                    } />
+
+                                    <Route path="/analytics" element={
+                                        <ProtectedRoute allowedRoles={['FLEET_MANAGER', 'FINANCIAL_ANALYST']}>
+                                            <Analytics />
+                                        </ProtectedRoute>
+                                    } />
+
                                     <Route path="*" element={<Navigate to="/" replace />} />
                                 </Routes>
                             </DashboardLayout>

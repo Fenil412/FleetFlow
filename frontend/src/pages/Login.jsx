@@ -2,6 +2,7 @@ import React, { useState, Suspense, Component } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 import { Eye, EyeOff, Lock, Mail, Loader2, Navigation, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Spline from '@splinetool/react-spline';
 
 // Error Boundary for Spline to prevent app crash on React 19 incompatibility
@@ -123,7 +124,13 @@ const Login = () => {
                                     <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="remember" />
                                     <label htmlFor="remember" className="ml-2 text-sm text-text-secondary cursor-pointer">Remember me</label>
                                 </div>
-                                <a href="#" className="text-sm font-semibold text-primary hover:text-blue-700 transition-colors">Forgot password?</a>
+                                <button
+                                    type="button"
+                                    onClick={() => toast.error('Account recovery system is currently offline. Please contact IT support.')}
+                                    className="text-sm font-semibold text-primary hover:text-blue-700 transition-colors outline-none"
+                                >
+                                    Forgot password?
+                                </button>
                             </div>
 
                             <button

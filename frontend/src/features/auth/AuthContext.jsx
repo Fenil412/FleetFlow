@@ -45,9 +45,9 @@ export const AuthProvider = ({ children }) => {
         window.location.href = '/login';
     };
 
-    const signUp = async (name, email, password) => {
+    const signUp = async (name, email, password, role) => {
         try {
-            await api.post('/auth/register', { name, email, password, role: 'DISPATCHER' });
+            await api.post('/auth/register', { name, email, password, role });
             return await login(email, password);
         } catch (error) {
             return {
