@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { connectSocket, disconnectSocket } from '../../sockets/socket';
 
@@ -14,6 +14,14 @@ export const AuthProvider = ({ children }) => {
         if (token && savedUser) {
             setUser(JSON.parse(savedUser));
             connectSocket(token);
+            // Refresh profile from server to get avatar_url etc.
+            api.get('/auth/profile')
+                .then(res => {
+                    const fresh = res.data.data.profile;
+                    setUser(prev => ({ ...prev, ...fresh }));
+                    localStorage.setItem('user', JSON.stringify({ ...JSON.parse(savedUser), ...fresh }));
+                })
+                .catch(() => { });
         }
         setLoading(false);
     }, []);
@@ -57,8 +65,17 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Update user data in state + localStorage (used by Profile page)
+    const updateUser = useCallback((patch) => {
+        setUser(prev => {
+            const updated = { ...prev, ...patch };
+            localStorage.setItem('user', JSON.stringify(updated));
+            return updated;
+        });
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, signUp, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, signUp, updateUser, loading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -5,7 +5,7 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import api from '../api/axios';
-import { Download, FileText, Table, TrendingUp, Fuel, Activity, DollarSign, Loader2 } from 'lucide-react';
+import { Download, FileText, Table, TrendingUp, Fuel, Activity, IndianRupee, Loader2 } from 'lucide-react';
 import { downloadCSV, downloadPDF } from '../utils/exportUtils';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
@@ -244,7 +244,7 @@ const Analytics = () => {
                             {financialData.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-8 py-12 text-center">
-                                        <DollarSign className="mx-auto mb-3 text-text-secondary/30" size={36} />
+                                        <IndianRupee className="mx-auto mb-3 text-text-secondary/30" size={36} />
                                         <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No financial data yet</p>
                                         <p className="text-xs text-text-secondary mt-1">Complete trips with revenue to populate this table</p>
                                     </td>

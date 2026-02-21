@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Fuel, Calendar, DollarSign, Droplets, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Fuel, Calendar, IndianRupee, Droplets, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
@@ -117,7 +117,7 @@ const FuelLogs = () => {
                     <div className="bg-card rounded-3xl p-6 text-text-primary shadow-sm border border-border relative overflow-hidden group">
                         <div className="relative z-10">
                             <p className="text-xs font-bold text-text-secondary uppercase tracking-[0.2em] mb-4">Total Fuel Cost</p>
-                            <h4 className="text-3xl font-extrabold mb-2">${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
+                            <h4 className="text-3xl font-extrabold mb-2">₹{totalCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h4>
                             <p className="text-xs font-bold text-text-secondary">{logs.length} transaction{logs.length !== 1 ? 's' : ''} recorded</p>
                         </div>
                         <Droplets className="absolute -right-8 -bottom-8 text-primary/10 group-hover:scale-110 transition-transform duration-700" size={160} />
@@ -164,7 +164,7 @@ const FuelLogs = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm font-bold text-text-primary">{log.liters ?? '---'} L</td>
-                                            <td className="px-6 py-4 text-sm font-semibold text-text-secondary">${log.cost ?? '---'}</td>
+                                            <td className="px-6 py-4 text-sm font-semibold text-text-secondary">₹{log.cost ?? '---'}</td>
                                             <td className="px-6 py-4 text-sm text-text-secondary">{log.odometer_km ? `${parseFloat(log.odometer_km).toLocaleString()} km` : '---'}</td>
                                             <td className="px-6 py-4 text-xs font-bold text-text-secondary uppercase">{formatSafeDate(log.fuel_date)}</td>
                                             {canManage && (
@@ -212,7 +212,7 @@ const FuelLogs = () => {
                                         <input required type="number" min="0.01" step="0.01" value={formData.liters} onChange={e => setFormData({ ...formData, liters: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">{editingLog ? 'Total Cost ($)' : 'Price/Liter ($)'}</label>
+                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">{editingLog ? 'Total Cost (₹)' : 'Price/Liter (₹)'}</label>
                                         <input required type="number" min="0.01" step="0.01" value={formData.price_per_liter} onChange={e => setFormData({ ...formData, price_per_liter: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
                                     </div>
                                 </div>
@@ -228,7 +228,7 @@ const FuelLogs = () => {
                                 </div>
                                 {!editingLog && formData.liters > 0 && formData.price_per_liter > 0 && (
                                     <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
-                                        <p className="text-xs text-text-secondary font-bold">Total Cost: <span className="text-primary font-black">${(formData.liters * formData.price_per_liter).toFixed(2)}</span></p>
+                                        <p className="text-xs text-text-secondary font-bold">Total Cost: <span className="text-primary font-black">₹{(formData.liters * formData.price_per_liter).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
                                     </div>
                                 )}
                                 <div className="flex gap-3 pt-2">

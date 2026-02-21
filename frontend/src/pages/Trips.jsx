@@ -330,7 +330,7 @@ const Trips = () => {
                                 <input type="number" min="0" value={completeForm.end_odometer} onChange={e => setCompleteForm({ ...completeForm, end_odometer: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Current vehicle odometer" />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Revenue ($) <span className="text-text-secondary/50 normal-case font-normal">(optional)</span></label>
+                                <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Revenue (₹) <span className="text-text-secondary/50 normal-case font-normal">(optional)</span></label>
                                 <input type="number" min="0" step="0.01" value={completeForm.revenue} onChange={e => setCompleteForm({ ...completeForm, revenue: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Trip revenue earned" />
                             </div>
                             <div className="flex gap-3 pt-2">

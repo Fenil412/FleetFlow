@@ -13,13 +13,15 @@ import {
     X,
     History,
     Info,
+    UserCircle2,
 } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import ThemeToggle from '../ui/ThemeToggle';
 
 const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
     const { logout, user } = useAuth();
+    const navigate = useNavigate();
 
     const menuItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
@@ -92,10 +94,19 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
                         <ThemeToggle collapse={!isOpen} />
                     </div>
 
-                    {/* User Profile */}
-                    <div className={`flex items-center px-2 ${!isOpen && 'justify-center border-b border-border pb-4'}`}>
-                        <div className="h-10 w-10 min-w-[40px] rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold">
-                            {user?.name?.charAt(0) || 'A'}
+                    {/* User Profile — clickable, goes to /profile */}
+                    <button
+                        onClick={() => { navigate('/profile'); if (isMobile) closeMobile?.(); }}
+                        className={`flex items-center w-full text-left rounded-xl px-2 py-2 hover:bg-background transition-colors group ${!isOpen && 'justify-center'}`}
+                    >
+                        <div className="h-10 w-10 min-w-[40px] rounded-full overflow-hidden border-2 border-primary/30 flex items-center justify-center flex-shrink-0 group-hover:border-primary transition-colors">
+                            {user?.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
+                                    {(user?.name || 'A').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                </div>
+                            )}
                         </div>
                         {isOpen && (
                             <div className="ml-3 overflow-hidden">
@@ -103,7 +114,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
                                 <p className="text-xs text-text-secondary truncate uppercase tracking-widest">{user?.role_name || user?.role || 'Administrator'}</p>
                             </div>
                         )}
-                    </div>
+                    </button>
 
                     {/* Logout */}
                     <button
