@@ -7,12 +7,12 @@ import {
     Wrench,
     Fuel,
     BarChart3,
-    Settings,
     ChevronLeft,
     ChevronRight,
     LogOut,
-    Menu,
-    X
+    X,
+    History,
+    Info,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -29,6 +29,8 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
         { name: 'Maintenance', icon: Wrench, path: '/maintenance', roles: ['FLEET_MANAGER', 'SAFETY_OFFICER'] },
         { name: 'Fuel Logs', icon: Fuel, path: '/fuel', roles: ['FLEET_MANAGER', 'FINANCIAL_ANALYST'] },
         { name: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['FLEET_MANAGER', 'FINANCIAL_ANALYST'] },
+        { name: 'History', icon: History, path: '/history', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
+        { name: 'About', icon: Info, path: '/about', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
     ];
 
     const filteredMenuItems = menuItems.filter(item =>

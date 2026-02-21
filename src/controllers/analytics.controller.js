@@ -13,5 +13,10 @@ export const getROI = asyncWrapper(async (req, res) => {
 
 export const getEfficiency = asyncWrapper(async (req, res) => {
     const data = await analyticsService.getFuelEfficiency();
-    res.json({ status: 'success', data });
+    res.json({ status: 'success', data: { efficiency: data } });
+});
+
+export const getFinancials = asyncWrapper(async (req, res) => {
+    const data = await analyticsService.getMonthlyFinancials();
+    res.json({ status: 'success', data: { monthly: data } });
 });

@@ -1,7 +1,7 @@
 import { query } from '../config/db.js';
 
 export const getDashboardKPIs = async () => {
-    const vehicleStats = await query(`
+  const vehicleStats = await query(`
     SELECT 
       COUNT(*) as total,
       COUNT(*) FILTER (WHERE status = 'AVAILABLE') as available,
@@ -10,7 +10,7 @@ export const getDashboardKPIs = async () => {
     FROM vehicles WHERE is_retired = FALSE
   `);
 
-    const driverStats = await query(`
+  const driverStats = await query(`
     SELECT 
       COUNT(*) as total,
       COUNT(*) FILTER (WHERE status = 'ON_DUTY') as on_duty,
@@ -18,7 +18,7 @@ export const getDashboardKPIs = async () => {
     FROM drivers
   `);
 
-    const tripStats = await query(`
+  const tripStats = await query(`
     SELECT 
       COUNT(*) as total,
       SUM(revenue) as total_revenue,
@@ -26,20 +26,20 @@ export const getDashboardKPIs = async () => {
     FROM trips
   `);
 
-    return {
-        vehicles: vehicleStats.rows[0],
-        drivers: driverStats.rows[0],
-        trips: tripStats.rows[0]
-    };
+  return {
+    vehicles: vehicleStats.rows[0],
+    drivers: driverStats.rows[0],
+    trips: tripStats.rows[0]
+  };
 };
 
 export const getVehicleROI = async () => {
-    const result = await query('SELECT * FROM vehicle_operational_cost ORDER BY total_operational_cost DESC');
-    return result.rows;
+  const result = await query('SELECT * FROM vehicle_operational_cost ORDER BY total_operational_cost DESC');
+  return result.rows;
 };
 
 export const getFuelEfficiency = async () => {
-    const result = await query(`
+  const result = await query(`
     SELECT 
       v.name,
       v.license_plate,
@@ -55,5 +55,40 @@ export const getFuelEfficiency = async () => {
     JOIN vehicles v ON f.vehicle_id = v.id
     GROUP BY v.id, v.name, v.license_plate
   `);
-    return result.rows;
+  return result.rows;
+};
+
+export const getMonthlyFinancials = async () => {
+  const result = await query(`
+    WITH revenue AS (
+        SELECT EXTRACT(YEAR FROM created_at) as yr, EXTRACT(MONTH FROM created_at) as mo,
+               COALESCE(SUM(revenue), 0) as revenue
+        FROM trips WHERE status = 'COMPLETED'
+        GROUP BY yr, mo
+    ),
+    fuel AS (
+        SELECT EXTRACT(YEAR FROM fuel_date) as yr, EXTRACT(MONTH FROM fuel_date) as mo,
+               COALESCE(SUM(cost), 0) as fuel_cost
+        FROM fuel_logs
+        GROUP BY yr, mo
+    ),
+    maint AS (
+        SELECT EXTRACT(YEAR FROM service_date) as yr, EXTRACT(MONTH FROM service_date) as mo,
+               COALESCE(SUM(cost), 0) as maintenance_cost
+        FROM maintenance_logs
+        GROUP BY yr, mo
+    )
+    SELECT 
+        COALESCE(r.yr, f.yr, m.yr) as year,
+        COALESCE(r.mo, f.mo, m.mo) as month,
+        COALESCE(r.revenue, 0) as revenue,
+        COALESCE(f.fuel_cost, 0) as fuel_cost,
+        COALESCE(m.maintenance_cost, 0) as maintenance_cost
+    FROM revenue r
+    FULL OUTER JOIN fuel f ON r.yr = f.yr AND r.mo = f.mo
+    FULL OUTER JOIN maint m ON COALESCE(r.yr, f.yr) = m.yr AND COALESCE(r.mo, f.mo) = m.mo
+    ORDER BY year DESC, month DESC
+    LIMIT 12
+  `);
+  return result.rows;
 };

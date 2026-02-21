@@ -10,5 +10,6 @@ router.use(authMiddleware);
 router.get('/dashboard', analyticsController.getDashboard);
 router.get('/roi', rbacMiddleware([ROLES.FLEET_MANAGER, ROLES.FINANCIAL_ANALYST]), analyticsController.getROI);
 router.get('/efficiency', rbacMiddleware([ROLES.FLEET_MANAGER, ROLES.FINANCIAL_ANALYST]), analyticsController.getEfficiency);
+router.get('/financial', rbacMiddleware([ROLES.FLEET_MANAGER, ROLES.FINANCIAL_ANALYST]), analyticsController.getFinancials);
 
 export default router;

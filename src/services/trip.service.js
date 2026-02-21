@@ -70,14 +70,22 @@ export const completeTrip = async (tripId, endOdometer, revenue) => {
         await client.query('BEGIN');
 
         const tripRes = await client.query('SELECT * FROM trips WHERE id = $1', [tripId]);
+        if (tripRes.rowCount === 0) throw new ApiError(404, 'Trip not found');
         const trip = tripRes.rows[0];
         if (trip.status !== 'DISPATCHED') throw new ApiError(400, 'Trip must be dispatched to complete');
 
-        // Update Vehicle
-        await client.query(
-            "UPDATE vehicles SET status = 'AVAILABLE', odometer_km = $1 WHERE id = $2",
-            [endOdometer, trip.vehicle_id]
-        );
+        // Update Vehicle — only update odometer if a value was provided
+        if (endOdometer != null && !isNaN(Number(endOdometer))) {
+            await client.query(
+                "UPDATE vehicles SET status = 'AVAILABLE', odometer_km = $1 WHERE id = $2",
+                [Number(endOdometer), trip.vehicle_id]
+            );
+        } else {
+            await client.query(
+                "UPDATE vehicles SET status = 'AVAILABLE' WHERE id = $1",
+                [trip.vehicle_id]
+            );
+        }
 
         // Update Driver
         await client.query("UPDATE drivers SET status = 'ON_DUTY' WHERE id = $1", [trip.driver_id]);
@@ -87,7 +95,7 @@ export const completeTrip = async (tripId, endOdometer, revenue) => {
             `UPDATE trips 
        SET status = 'COMPLETED', end_time = NOW(), end_odometer = $1, revenue = $2 
        WHERE id = $3 RETURNING *`,
-            [endOdometer, revenue, tripId]
+            [endOdometer ?? null, revenue ?? 0, tripId]
         );
 
         await client.query('COMMIT');
@@ -101,7 +109,13 @@ export const completeTrip = async (tripId, endOdometer, revenue) => {
 };
 
 export const getAllTrips = async () => {
-    const result = await query('SELECT t.*, v.name as vehicle_name, d.name as driver_name FROM trips t JOIN vehicles v ON t.vehicle_id = v.id JOIN drivers d ON t.driver_id = d.id ORDER BY t.created_at DESC');
+    const result = await query(
+        `SELECT t.*, v.name as vehicle_name, v.vehicle_type, d.name as driver_name
+         FROM trips t
+         JOIN vehicles v ON t.vehicle_id = v.id
+         JOIN drivers d ON t.driver_id = d.id
+         ORDER BY t.created_at DESC`
+    );
     return result.rows;
 };
 

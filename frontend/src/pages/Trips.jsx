@@ -1,27 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Navigation, MapPin, Calendar, Package, Loader2, XCircle } from 'lucide-react';
+import { Navigation, Loader2, X, Check, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatSafeDate } from '../utils/dateUtils';
 import { useAuth } from '../features/auth/AuthContext';
+
+const STATUS_COLOR = {
+    DRAFT: 'text-yellow-400',
+    DISPATCHED: 'text-primary',
+    COMPLETED: 'text-success',
+    CANCELLED: 'text-danger',
+};
+
+const STATUS_LABEL = {
+    DRAFT: 'Pending',
+    DISPATCHED: 'On Trip',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled',
+};
 
 const Trips = () => {
     const { user } = useAuth();
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const [statusFilter, setStatusFilter] = useState('ALL');
-    const [showDispatchModal, setShowDispatchModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showNewTripForm, setShowNewTripForm] = useState(false);
     const [availableVehicles, setAvailableVehicles] = useState([]);
     const [availableDrivers, setAvailableDrivers] = useState([]);
     const [formData, setFormData] = useState({
-        vehicle_id: '',
-        driver_id: '',
-        origin: '',
-        destination: '',
-        cargo_details: '',
-        cargo_weight_kg: 0
+        vehicle_id: '', driver_id: '', origin: '', destination: '',
+        cargo_weight_kg: 0, cargo_details: ''
     });
+    // Complete trip modal
+    const [completingTrip, setCompletingTrip] = useState(null);
+    const [completeForm, setCompleteForm] = useState({ end_odometer: '', revenue: '' });
+
+    // Stats
+    const activeFleet = trips.filter(t => t.status === 'DISPATCHED').length;
+    const pendingCargo = trips.filter(t => t.status === 'DRAFT').length;
+    const completed = trips.filter(t => t.status === 'COMPLETED').length;
 
     const fetchTrips = async () => {
         try {
@@ -38,57 +56,65 @@ const Trips = () => {
         try {
             const [vRes, dRes] = await Promise.all([
                 api.get('/vehicles'),
-                api.get('/drivers')
+                api.get('/drivers'),
             ]);
-            setAvailableVehicles(vRes.data.data.vehicles.filter(v => v.status === 'AVAILABLE'));
-            setAvailableDrivers(dRes.data.data.drivers.filter(d => d.status === 'ON_DUTY'));
+            setAvailableVehicles((vRes.data.data.vehicles || []).filter(v => v.status === 'AVAILABLE'));
+            setAvailableDrivers((dRes.data.data.drivers || []).filter(d => d.status === 'ON_DUTY'));
         } catch (err) {
             console.error('Failed to fetch resources', err);
         }
     };
 
-    useEffect(() => {
-        fetchTrips();
-    }, []);
+    useEffect(() => { fetchTrips(); }, []);
 
     const handleCreateTrip = async (e) => {
         e.preventDefault();
-        const t = toast.loading('Initiating dispatch sequence...');
+        const t = toast.loading('Creating trip...');
         try {
             await api.post('/trips', formData);
-            toast.success('Unit dispatched from HQ', { id: t });
-            setShowDispatchModal(false);
+            toast.success('Trip created & dispatched!', { id: t });
+            setShowNewTripForm(false);
+            setFormData({ vehicle_id: '', driver_id: '', origin: '', destination: '', cargo_weight_kg: 0, cargo_details: '' });
             fetchTrips();
-            setFormData({ vehicle_id: '', driver_id: '', origin: '', destination: '', cargo_details: '', cargo_weight_kg: 0 });
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Dispatch failed', { id: t });
+            toast.error(err.response?.data?.message || 'Failed to create trip', { id: t });
         }
     };
 
     const handleDispatch = async (id) => {
-        const t = toast.loading('Sending authorization codes...');
+        const t = toast.loading('Dispatching...');
         try {
             await api.patch(`/trips/${id}/dispatch`);
-            toast.success('Unit is now moving', { id: t });
+            toast.success('Trip dispatched!', { id: t });
             fetchTrips();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Dispatch failed', { id: t });
         }
     };
 
-    const handleComplete = async (id) => {
-        const t = toast.loading('Finalizing delivery...');
+    const openCompleteModal = (trip) => {
+        setCompletingTrip(trip);
+        setCompleteForm({ end_odometer: '', revenue: '' });
+    };
+
+    const handleComplete = async (e) => {
+        e.preventDefault();
+        const t = toast.loading('Finalizing trip...');
         try {
-            await api.patch(`/trips/${id}/complete`);
-            toast.success('Trip logged as completed', { id: t });
+            await api.patch(`/trips/${completingTrip.id}/complete`, {
+                end_odometer: completeForm.end_odometer ? Number(completeForm.end_odometer) : undefined,
+                revenue: completeForm.revenue ? Number(completeForm.revenue) : undefined,
+            });
+            toast.success('Trip completed!', { id: t });
+            setCompletingTrip(null);
             fetchTrips();
         } catch (err) {
-            toast.error('Failed to complete trip', { id: t });
+            toast.error(err.response?.data?.message || 'Failed to complete trip', { id: t });
         }
     };
 
     const handleCancel = async (id) => {
-        if (!window.confirm('Cancel and delete this trip?')) return;
+        if (!window.confirm('Cancel and delete this trip? This will release the vehicle and driver.')) return;
         const t = toast.loading('Cancelling trip...');
         try {
             await api.delete(`/trips/${id}`);
@@ -99,282 +125,221 @@ const Trips = () => {
         }
     };
 
-    const filteredTrips = trips.filter(t => statusFilter === 'ALL' || t.status === statusFilter);
     const canDispatch = ['FLEET_MANAGER', 'DISPATCHER'].includes(user?.role_name);
 
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'DISPATCHED': return 'bg-primary text-white ring-primary/30';
-            case 'COMPLETED': return 'bg-success text-white ring-success/30';
-            case 'DRAFT': return 'bg-text-secondary/10 text-text-secondary ring-text-secondary/20';
-            case 'CANCELLED': return 'bg-danger text-white ring-danger/30';
-            default: return 'bg-background text-text-secondary';
-        }
-    };
+    const filteredTrips = trips.filter(t => {
+        const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
+        const matchSearch = t.vehicle_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.destination?.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchStatus && matchSearch;
+    });
 
     return (
         <div className="space-y-6 text-text-primary">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold font-sans tracking-tight text-text-primary">Trip Dispatcher</h2>
+                    <h2 className="text-2xl font-bold">Trip Dispatcher & Management</h2>
                     <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Live deployment tracking</p>
                 </div>
                 <div className="flex gap-2">
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="bg-card border border-border rounded-xl px-4 py-2.5 text-xs font-bold text-text-primary outline-none cursor-pointer"
-                    >
-                        <option value="ALL">All Activity</option>
-                        <option value="DISPATCHED">In Progress</option>
-                        <option value="COMPLETED">Completed</option>
-                    </select>
-                    <button
-                        onClick={() => {
-                            fetchResources();
-                            setShowDispatchModal(true);
-                        }}
-                        className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-xl hover:bg-blue-700 hover:-translate-y-0.5 transition-all outline-none"
-                    >
-                        <Navigation size={18} />
-                        New Dispatch
-                    </button>
+                    {canDispatch && (
+                        <button
+                            onClick={() => { setShowNewTripForm(v => !v); fetchResources(); }}
+                            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none"
+                        >
+                            <Navigation size={16} /> New Trip
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Active Trips Section */}
-                <div className="space-y-4">
-                    <h3 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-2 mb-4">Active Deployments</h3>
-                    {loading ? (
-                        <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" size={32} /></div>
-                    ) : filteredTrips.filter(t => t.status === 'DISPATCHED' || t.status === 'DRAFT').length === 0 ? (
-                        <div className="bg-card border-2 border-dashed border-border rounded-3xl p-12 text-center">
-                            <Package className="mx-auto text-text-secondary/30 mb-4" size={48} />
-                            <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No matching active trips</p>
-                        </div>
-                    ) : filteredTrips.filter(t => t.status === 'DISPATCHED' || t.status === 'DRAFT').map((trip) => (
-                        <div key={trip.id} className="bg-card rounded-3xl p-6 shadow-sm border border-border relative overflow-hidden group hover:shadow-2xl transition-all duration-500">
-                            <div className="absolute right-0 top-0 h-1 w-full bg-primary" />
-                            <div className="flex items-start justify-between mb-6">
-                                <div className="flex items-center">
-                                    <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mr-4 shadow-lg group-hover:bg-primary group-hover:text-white transition-all">
-                                        <Navigation size={20} />
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] font-black uppercase text-primary tracking-widest leading-none">Trip ID: FF-{trip.id}</span>
-                                        <h4 className="font-extrabold text-text-primary text-xl mt-1 leading-none">{trip.origin} <span className="text-primary mx-2">→</span> {trip.destination}</h4>
-                                    </div>
-                                </div>
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ring-4 ${getStatusStyle(trip.status)}`}>
-                                    {trip.status === 'DRAFT' ? 'Pending' : 'Live'}
-                                </span>
-                            </div>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-3 gap-4">
+                {[
+                    { label: 'Active Fleet', value: activeFleet, color: 'text-primary' },
+                    { label: 'Pending Cargo', value: pendingCargo, color: 'text-yellow-400' },
+                    { label: 'Completed', value: completed, color: 'text-success' },
+                ].map(kpi => (
+                    <div key={kpi.label} className="bg-card rounded-2xl border border-border p-5 text-center shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-widest text-text-secondary mb-2">{kpi.label}</p>
+                        <p className={`text-3xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
+                    </div>
+                ))}
+            </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                <div className="bg-background/50 p-4 rounded-2xl border border-border">
-                                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Assigned Vehicle</p>
-                                    <p className="font-bold text-text-primary truncate">{trip.vehicle_name || 'N/A'}</p>
-                                </div>
-                                <div className="bg-background/50 p-4 rounded-2xl border border-border">
-                                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Command Driver</p>
-                                    <p className="font-bold text-text-primary truncate">{trip.driver_name || 'N/A'}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs font-bold pt-4 border-t border-border">
-                                <div className="flex items-center text-text-secondary">
-                                    <Calendar size={14} className="mr-2" />
-                                    {trip.status === 'DRAFT' ? 'Awaiting Dispatch' : `Started: ${formatSafeDate(trip.start_time, 'HH:mm | MMM d')}`}
-                                </div>
-                                <div className="flex gap-2">
-                                    {canDispatch && trip.status === 'DRAFT' && (
-                                        <button
-                                            onClick={() => handleDispatch(trip.id)}
-                                            className="bg-primary text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all shadow-md hover:shadow-lg outline-none"
-                                        >
-                                            Authorize
-                                        </button>
-                                    )}
-                                    {canDispatch && trip.status === 'DISPATCHED' && (
-                                        <button
-                                            onClick={() => handleComplete(trip.id)}
-                                            className="text-success hover:text-white hover:bg-success border border-success/50 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all outline-none"
-                                        >
-                                            Complete
-                                        </button>
-                                    )}
-                                    {canDispatch && (
-                                        <button
-                                            onClick={() => handleCancel(trip.id)}
-                                            className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none"
-                                            title="Cancel Trip"
-                                        >
-                                            <XCircle size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
+                    <input type="text" placeholder="Search by vehicle, driver, origin, destination..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-card rounded-xl border border-border text-sm font-medium text-text-primary placeholder:text-text-secondary/50 focus:ring-2 focus:ring-primary outline-none" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Filter size={15} className="text-text-secondary" />
+                    {['ALL', 'DRAFT', 'DISPATCHED', 'COMPLETED', 'CANCELLED'].map(s => (
+                        <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all outline-none ${statusFilter === s ? 'bg-primary text-white' : 'bg-card border border-border text-text-secondary hover:bg-background'}`}>
+                            {s === 'ALL' ? 'All' : STATUS_LABEL[s] || s}
+                        </button>
                     ))}
                 </div>
+            </div>
 
-                {/* Completed History Section */}
-                <div className="space-y-4 lg:border-l lg:pl-8 border-border">
-                    <h3 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-2 mb-4">Route Visualization</h3>
-
-                    {/* 🗺️ Dynamic Map Placeholder */}
-                    <div className="bg-card border border-border rounded-3xl p-6 mb-8 relative overflow-hidden h-48 group shadow-inner">
-                        <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <svg className="h-full w-full" viewBox="0 0 100 100">
-                                <path d="M10,10 L90,90 M10,90 L90,10 M50,0 L50,100 M0,50 L100,50" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                                <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                            </svg>
-                        </div>
-                        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center">
-                            <MapPin className="text-primary mb-2 animate-bounce" size={24} />
-                            <p className="text-xs font-black uppercase tracking-widest text-text-primary">Live Asset Mapping</p>
-                            <p className="text-[10px] text-text-secondary font-bold mt-1">Satellite tracking enabled for {filteredTrips.filter(t => t.status === 'DISPATCHED').length} active units</p>
-                        </div>
-                    </div>
-
-                    <h3 className="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-2 mb-4">Operations History</h3>
-                    <div className="space-y-3">
-                        {filteredTrips.filter(t => t.status === 'COMPLETED').length === 0 ? (
-                            <p className="text-sm font-bold text-text-secondary text-center py-10 uppercase tracking-widest">No history recorded</p>
-                        ) : filteredTrips.filter(t => t.status === 'COMPLETED').slice(0, 5).map((trip) => (
-                            <div
-                                key={trip.id}
-                                onClick={() => alert(`Reviewing completed trip FF-${trip.id}`)}
-                                className="bg-card/50 border border-border rounded-2xl p-4 flex items-center justify-between hover:bg-background transition-all shadow-sm hover:shadow-md cursor-pointer group"
-                            >
-                                <div className="flex items-center">
-                                    <div className="h-8 w-8 rounded-lg bg-success/10 text-success flex items-center justify-center mr-4 group-hover:bg-success group-hover:text-white transition-all">
-                                        <Navigation size={16} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-text-primary leading-none mb-1">{trip.origin} to {trip.destination}</p>
-                                        <p className="text-[10px] font-semibold text-text-secondary uppercase">{formatSafeDate(trip.end_time)}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-black text-success">+${trip.revenue?.toLocaleString() || '0'}</p>
-                                    <p className="text-[10px] font-bold text-text-secondary uppercase leading-none mt-1">Revenue</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <button className="w-full py-3 text-xs font-black text-text-secondary uppercase tracking-widest bg-background rounded-2xl hover:bg-card transition-all border border-border outline-none">
-                        View Archive
-                    </button>
+            {/* Table */}
+            <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-background/50 border-b border-border text-[10px] font-black text-text-secondary uppercase tracking-[0.15em]">
+                                <th className="px-6 py-4">Trip #</th>
+                                <th className="px-6 py-4">Fleet Type</th>
+                                <th className="px-6 py-4">Vehicle</th>
+                                <th className="px-6 py-4">Driver</th>
+                                <th className="px-6 py-4">Origin</th>
+                                <th className="px-6 py-4">Destination</th>
+                                <th className="px-6 py-4">Date</th>
+                                <th className="px-6 py-4">Status</th>
+                                {canDispatch && <th className="px-6 py-4 text-right">Actions</th>}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {loading ? (
+                                [1, 2, 3, 4].map(i => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td colSpan={canDispatch ? 9 : 8} className="h-14 bg-background/20" />
+                                    </tr>
+                                ))
+                            ) : filteredTrips.length === 0 ? (
+                                <tr>
+                                    <td colSpan={canDispatch ? 9 : 8} className="px-6 py-16 text-center">
+                                        <Navigation className="mx-auto mb-3 text-text-secondary/30" size={40} />
+                                        <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No trips found</p>
+                                    </td>
+                                </tr>
+                            ) : filteredTrips.map(trip => (
+                                <tr key={trip.id} className="hover:bg-background/50 transition-colors group">
+                                    <td className="px-6 py-4 font-black text-text-primary">#{trip.id}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-text-secondary">
+                                        {/* vehicle_type is not joined — show cargo_details as fleet info */}
+                                        {trip.vehicle_type || 'Fleet'}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="font-bold text-text-primary text-sm">{trip.vehicle_name || 'N/A'}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-sm font-medium text-text-secondary">{trip.driver_name || 'N/A'}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.origin}</td>
+                                    <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.destination}</td>
+                                    <td className="px-6 py-4 text-xs font-bold text-text-secondary">{formatSafeDate(trip.created_at)}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`text-xs font-black uppercase ${STATUS_COLOR[trip.status] || 'text-text-secondary'}`}>
+                                            {STATUS_LABEL[trip.status] || trip.status}
+                                        </span>
+                                    </td>
+                                    {canDispatch && (
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {trip.status === 'DRAFT' && (
+                                                    <button onClick={() => handleDispatch(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all outline-none">
+                                                        Dispatch
+                                                    </button>
+                                                )}
+                                                {trip.status === 'DISPATCHED' && (
+                                                    <button onClick={() => openCompleteModal(trip)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all outline-none">
+                                                        Complete
+                                                    </button>
+                                                )}
+                                                {(trip.status === 'DRAFT' || trip.status === 'DISPATCHED') && (
+                                                    <button onClick={() => handleCancel(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all outline-none">
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            {/* New Dispatch Modal */}
-            {showDispatchModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
-                        <div className="p-8">
-                            <h3 className="text-2xl font-bold text-text-primary mb-2">Deploy Fleet</h3>
-                            <p className="text-sm text-text-secondary mb-6">Assign resources for a new operational route</p>
-
-                            <form onSubmit={handleCreateTrip} className="space-y-5">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Origin</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            value={formData.origin}
-                                            onChange={e => setFormData({ ...formData, origin: e.target.value })}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none"
-                                            placeholder="Loading Point"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Destination</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            value={formData.destination}
-                                            onChange={e => setFormData({ ...formData, destination: e.target.value })}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none"
-                                            placeholder="Unloading Point"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Assigned Vehicle</label>
-                                    <select
-                                        required
-                                        value={formData.vehicle_id}
-                                        onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select Available Vehicle</option>
-                                        {availableVehicles.map(v => (
-                                            <option key={v.id} value={v.id}>{v.name} ({v.license_plate})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Command Driver</label>
-                                    <select
-                                        required
-                                        value={formData.driver_id}
-                                        onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select Active Personnel</option>
-                                        {availableDrivers.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name} (Score: {d.safety_score})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Cargo Weight (KG)</label>
-                                        <input
-                                            required
-                                            type="number"
-                                            value={formData.cargo_weight_kg}
-                                            onChange={e => setFormData({ ...formData, cargo_weight_kg: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none"
-                                            placeholder="Weight in KG"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Cargo Specifications</label>
-                                        <input
-                                            type="text"
-                                            value={formData.cargo_details}
-                                            onChange={e => setFormData({ ...formData, cargo_details: e.target.value })}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none"
-                                            placeholder="e.g. Spare Parts"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowDispatchModal(false)}
-                                        className="flex-1 py-3 bg-background text-text-secondary font-black text-[10px] uppercase tracking-widest rounded-xl border border-border hover:bg-card transition-all outline-none"
-                                    >
-                                        Abort
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all outline-none"
-                                    >
-                                        Dispatch Unit
-                                    </button>
-                                </div>
-                            </form>
+            {/* New Trip Form (inline below table, matches screenshot) */}
+            {showNewTripForm && canDispatch && (
+                <div className="bg-card rounded-3xl border border-border shadow-sm p-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-black text-text-primary uppercase tracking-wider">New Trip Form</h3>
+                        <button onClick={() => setShowNewTripForm(false)} className="p-2 rounded-xl text-text-secondary hover:bg-background transition-colors outline-none"><X size={18} /></button>
+                    </div>
+                    <form onSubmit={handleCreateTrip} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Select Vehicle</label>
+                            <select required value={formData.vehicle_id} onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none">
+                                <option value="">-- Select Available Vehicle --</option>
+                                {availableVehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.license_plate}) — {v.vehicle_type}</option>)}
+                            </select>
                         </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Cargo Weight (KG)</label>
+                            <input required type="number" min="0.1" step="0.1" value={formData.cargo_weight_kg} onChange={e => setFormData({ ...formData, cargo_weight_kg: parseFloat(e.target.value) || 0 })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="e.g. 500" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Select Driver</label>
+                            <select required value={formData.driver_id} onChange={e => setFormData({ ...formData, driver_id: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none">
+                                <option value="">-- Select On-Duty Driver --</option>
+                                {availableDrivers.map(d => <option key={d.id} value={d.id}>{d.name} (Score: {d.safety_score})</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Estimated Fuel Cost ($)</label>
+                            <input type="number" min="0" step="0.01" value={formData.cargo_details} onChange={e => setFormData({ ...formData, cargo_details: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Optional estimate" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Origin Address</label>
+                            <input required type="text" value={formData.origin} onChange={e => setFormData({ ...formData, origin: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Pickup point" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Destination</label>
+                            <input required type="text" value={formData.destination} onChange={e => setFormData({ ...formData, destination: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Delivery point" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <button type="submit" className="w-full py-3 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-blue-700 transition-colors outline-none flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                                <Check size={16} /> Confirm & Dispatch Trip
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Complete Trip Modal */}
+            {completingTrip && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-card border border-border w-full max-w-md rounded-3xl shadow-2xl p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-xl font-bold text-text-primary">Complete Trip #{completingTrip.id}</h3>
+                                <p className="text-sm text-text-secondary mt-1">{completingTrip.origin} → {completingTrip.destination}</p>
+                            </div>
+                            <button onClick={() => setCompletingTrip(null)} className="p-2 rounded-xl hover:bg-background text-text-secondary outline-none"><X size={18} /></button>
+                        </div>
+                        <form onSubmit={handleComplete} className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">End Odometer (km) <span className="text-text-secondary/50 normal-case font-normal">(optional)</span></label>
+                                <input type="number" min="0" value={completeForm.end_odometer} onChange={e => setCompleteForm({ ...completeForm, end_odometer: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Current vehicle odometer" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Revenue ($) <span className="text-text-secondary/50 normal-case font-normal">(optional)</span></label>
+                                <input type="number" min="0" step="0.01" value={completeForm.revenue} onChange={e => setCompleteForm({ ...completeForm, revenue: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Trip revenue earned" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setCompletingTrip(null)} className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-text-secondary hover:bg-background transition-colors outline-none">Cancel</button>
+                                <button type="submit" className="flex-1 py-3 rounded-xl bg-success text-white text-sm font-bold hover:bg-green-700 transition-colors outline-none flex items-center justify-center gap-2">
+                                    <Check size={16} /> Mark Completed
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

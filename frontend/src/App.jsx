@@ -13,6 +13,8 @@ const Trips = lazy(() => import('./pages/Trips'));
 const Maintenance = lazy(() => import('./pages/Maintenance'));
 const FuelLogs = lazy(() => import('./pages/FuelLogs'));
 const Analytics = lazy(() => import('./pages/Analytics'));
+const History = lazy(() => import('./pages/History'));
+const About = lazy(() => import('./pages/About'));
 
 const SignUp = lazy(() => import('./pages/SignUp'));
 
@@ -71,6 +73,9 @@ function App() {
                                             <Analytics />
                                         </ProtectedRoute>
                                     } />
+
+                                    <Route path="/history" element={<History />} />
+                                    <Route path="/about" element={<About />} />
 
                                     <Route path="*" element={<Navigate to="/" replace />} />
                                 </Routes>
