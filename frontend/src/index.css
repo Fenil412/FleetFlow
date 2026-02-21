@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 37 99 235;
+    /* #2563EB */
+    --color-background: 248 250 252;
+    /* #F8FAFC */
+    --color-navy: 15 23 42;
+    /* #0F172A */
+    --color-text-primary: 11 18 32;
+    /* #0B1220 */
+    --color-text-secondary: 100 116 139;
+    /* #64748B */
+    --color-card: 255 255 255;
+    --color-border: 226 232 240;
+  }
+
+  .dark {
+    --color-primary: 59 130 246;
+    /* Better contrast for dark */
+    --color-background: 11 18 32;
+    /* Deep Navy */
+    --color-navy: 15 23 42;
+    --color-text-primary: 248 250 252;
+    --color-text-secondary: 148 163 184;
+    --color-card: 30 41 59;
+    /* Slate 800 */
+    --color-border: 51 65 85;
+    /* Slate 700 */
+  }
+
+  body {
+    @apply bg-background text-text-primary transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .auth-gradient {
+    @apply bg-gradient-to-br from-navy to-primary/20;
+  }
+
+  .glass-morphism {
+    @apply backdrop-blur-xl border border-border;
+    background-color: rgb(var(--color-card) / 0.6);
+  }
+}
