@@ -52,12 +52,12 @@ const Analytics = () => {
         ? Math.min(100, ((roiData.filter(v => parseFloat(v.total_revenue || 0) > 0).length / roiData.length) * 100)).toFixed(0)
         : null;
 
-    // Fuel Efficiency Line Chart
+    // Fuel Cost per Vehicle Chart (total_cost in ₹, since liters_per_100km requires odometer data)
     const efficiencyChartData = {
         labels: efficiencyData.map(v => v.name || v.license_plate),
         datasets: [{
-            label: 'L/100km',
-            data: efficiencyData.map(v => parseFloat(v.liters_per_100km || 0).toFixed(2)),
+            label: 'Fuel Cost (₹)',
+            data: efficiencyData.map(v => parseFloat(v.total_cost || 0).toFixed(2)),
             borderColor: '#2563EB',
             backgroundColor: 'rgba(37,99,235,0.08)',
             fill: true,
@@ -91,10 +91,10 @@ const Analytics = () => {
     const buildPayroll = () => {
         return financialData.map(row => ({
             Month: MONTH_NAMES[parseInt(row.month) - 1] || row.month,
-            Revenue: `$${parseFloat(row.revenue || 0).toFixed(2)}`,
-            'Fuel Cost': `$${parseFloat(row.fuel_cost || 0).toFixed(2)}`,
-            Maintenance: `$${parseFloat(row.maintenance_cost || 0).toFixed(2)}`,
-            'Net Profit': `$${(parseFloat(row.revenue || 0) - parseFloat(row.fuel_cost || 0) - parseFloat(row.maintenance_cost || 0)).toFixed(2)}`,
+            Revenue: `\u20b9${parseFloat(row.revenue || 0).toFixed(2)}`,
+            'Fuel Cost': `\u20b9${parseFloat(row.fuel_cost || 0).toFixed(2)}`,
+            Maintenance: `\u20b9${parseFloat(row.maintenance_cost || 0).toFixed(2)}`,
+            'Net Profit': `\u20b9${(parseFloat(row.revenue || 0) - parseFloat(row.fuel_cost || 0) - parseFloat(row.maintenance_cost || 0)).toFixed(2)}`,
         }));
     };
 
@@ -155,7 +155,7 @@ const Analytics = () => {
                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Fuel size={22} /></div>
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary mb-1">Total Fuel Cost</p>
-                        <p className="text-2xl font-extrabold text-text-primary">Rs. {totalFuelCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="text-2xl font-extrabold text-text-primary">₹{totalFuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                     </div>
                 </div>
                 <div className="bg-card rounded-2xl border border-border p-6 shadow-sm flex items-center gap-4">
@@ -257,11 +257,11 @@ const Analytics = () => {
                                 return (
                                     <tr key={i} className="hover:bg-background/50 transition-colors">
                                         <td className="px-8 py-4 font-bold text-text-primary">{MONTH_NAMES[parseInt(row.month) - 1] || row.month}</td>
-                                        <td className="px-8 py-4 font-bold text-success">Rs. {revenue.toLocaleString()}</td>
-                                        <td className="px-8 py-4 font-medium text-text-secondary">Rs. {fuelCost.toLocaleString()}</td>
-                                        <td className="px-8 py-4 font-medium text-text-secondary">Rs. {maintCost.toLocaleString()}</td>
+                                        <td className="px-8 py-4 font-bold text-success">₹{revenue.toLocaleString('en-IN')}</td>
+                                        <td className="px-8 py-4 font-medium text-text-secondary">₹{fuelCost.toLocaleString('en-IN')}</td>
+                                        <td className="px-8 py-4 font-medium text-text-secondary">₹{maintCost.toLocaleString('en-IN')}</td>
                                         <td className={`px-8 py-4 font-extrabold ${netProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-                                            Rs. {netProfit.toLocaleString()}
+                                            ₹{netProfit.toLocaleString('en-IN')}
                                         </td>
                                     </tr>
                                 );
@@ -281,8 +281,8 @@ const Analytics = () => {
                                 <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">{v.license_plate}</p>
                                 <h5 className="text-lg font-bold">{v.name}</h5>
                                 <p className="text-sm text-text-secondary">
-                                    Op. Cost: <span className="font-black text-text-primary">${parseFloat(v.total_operational_cost || 0).toLocaleString()}</span>
-                                    &nbsp;· Revenue: <span className="font-black text-text-primary">${parseFloat(v.total_revenue || 0).toLocaleString()}</span>
+                                    Op. Cost: <span className="font-black text-text-primary">₹{parseFloat(v.total_operational_cost || 0).toLocaleString('en-IN')}</span>
+                                    &nbsp;· Revenue: <span className="font-black text-text-primary">₹{parseFloat(v.total_revenue || 0).toLocaleString('en-IN')}</span>
                                 </p>
                             </div>
                         ))}
