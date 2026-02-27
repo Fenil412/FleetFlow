@@ -32,85 +32,37 @@ FleetFlow is a **full-stack enterprise fleet management system** built with Reac
 
 ```
 FleetFlow/
-├── src/                          # Backend (Node.js + Express)
-│   ├── app.js                    # Express app setup
-│   ├── server.js                 # Server entry point
-│   ├── config/
-│   │   ├── db.js                 # PostgreSQL pool
-│   │   ├── cloudinary.js         # Cloudinary SDK + uploadBuffer helper
-│   │   └── mailer.js             # Nodemailer SMTP transporter
-│   ├── controllers/
-│   │   ├── auth.controller.js    # Auth + profile + OTP handlers
-│   │   ├── vehicle.controller.js
-│   │   ├── driver.controller.js
-│   │   ├── trip.controller.js
-│   │   ├── maintenance.controller.js
-│   │   ├── fuel.controller.js
-│   │   └── analytics.controller.js
-│   ├── services/
-│   │   ├── auth.service.js       # Login/register + OTP + profile CRUD
-│   │   ├── email.service.js      # Branded HTML email templates
-│   │   ├── vehicle.service.js
-│   │   ├── driver.service.js
-│   │   ├── trip.service.js
-│   │   ├── maintenance.service.js
-│   │   ├── fuel.service.js
-│   │   └── analytics.service.js
-│   ├── routes/
-│   │   ├── auth.routes.js        # /auth/* including profile & password-reset
-│   │   ├── vehicle.routes.js
-│   │   ├── driver.routes.js
-│   │   ├── trip.routes.js
-│   │   ├── maintenance.routes.js
-│   │   ├── fuel.routes.js
-│   │   └── analytics.routes.js
-│   ├── middleware/
-│   │   ├── auth.middleware.js    # JWT verification
-│   │   ├── rbac.middleware.js    # Role-based access
-│   │   ├── upload.middleware.js  # Multer (image, max 5 MB)
-│   │   └── error.middleware.js
-│   └── sockets/
-│       └── fleet.socket.js
+├── backend/                      # Backend (Node.js + Express)
+│   ├── src/
+│   │   ├── app.js                # Express app setup
+│   │   ├── server.js             # Server entry point
+│   │   ├── config/
+│   │   │   ├── db.js             # PostgreSQL pool
+│   │   │   ├── cloudinary.js     # Cloudinary SDK + uploadBuffer helper
+│   │   │   └── mailer.js         # Nodemailer SMTP transporter
+│   │   ├── controllers/          # ... and other subdirectories
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── middleware/
+│   │   └── sockets/
+│   ├── database/
+│   │   ├── schema.sql            # Full DB schema (9 tables + views + triggers)
+│   │   ├── migrations/
+│   │   └── seed.sql              # Dummy data
+│   ├── scripts/                  # Utility scripts
+│   ├── .env                      # Your local secrets (never commit)
+│   ├── .env.sample               # ← Server env template
+│   └── package.json
 │
 ├── frontend/                     # Frontend (React 18 + Vite)
-│   └── src/
-│       ├── pages/
-│       │   ├── Dashboard.jsx
-│       │   ├── Vehicles.jsx
-│       │   ├── Drivers.jsx
-│       │   ├── Trips.jsx
-│       │   ├── Maintenance.jsx
-│       │   ├── FuelLogs.jsx
-│       │   ├── Analytics.jsx
-│       │   ├── History.jsx
-│       │   ├── Profile.jsx       # Avatar upload + edit + change password
-│       │   ├── ForgotPassword.jsx# 3-step OTP modal
-│       │   ├── Login.jsx         # Dark-mode themed
-│       │   ├── SignUp.jsx        # Dark-mode themed
-│       │   └── About.jsx
-│       ├── features/auth/
-│       │   └── AuthContext.jsx   # updateUser + auto-profile refresh on mount
-│       ├── components/layout/
-│       │   ├── DashboardLayout.jsx
-│       │   └── Sidebar.jsx       # Real avatar (Cloudinary) or initials
-│       ├── context/
-│       │   └── ThemeContext.jsx
-│       ├── api/axios.js
-│       ├── sockets/socket.js
-│       ├── hooks/useSocket.js
-│       └── utils/
-│           ├── exportUtils.js    # PDF/CSV export (jsPDF + autoTable)
-│           └── dateUtils.js
-│
-├── database/
-│   ├── schema.sql                # Full DB schema (9 tables + views + triggers)
-│   ├── migrations/
-│   │   └── 001_add_user_profile.sql  # avatar_url, phone, otp, reset_token columns
-│   └── seed.sql                  # Dummy data (5 users, 10 vehicles, 10 drivers, 20 trips…)
-│
-├── .env                          # Your local secrets (never commit)
-├── .env.sample                   # ← Server env template
-└── package.json
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   └── ...
+│   ├── .env
+│   ├── .env.sample
+│   └── package.json
+└── .gitignore (root)
 ```
 
 ---
@@ -140,13 +92,13 @@ cd FleetFlow
 psql -U postgres -c "CREATE DATABASE myappdb;"
 
 # Run the schema
-psql -U postgres -d myappdb -f database/schema.sql
+psql -U postgres -d myappdb -f backend/database/schema.sql
 
-# Run profile migration (avatar_url, otp, reset_token columns)
-psql -U postgres -d myappdb -f database/migrations/001_add_user_profile.sql
+# Run profile migration
+psql -U postgres -d myappdb -f backend/database/migrations/001_add_user_profile.sql
 
-# Seed dummy data (optional but recommended for testing)
-psql -U postgres -d myappdb -f database/seed.sql
+# Seed dummy data
+psql -U postgres -d myappdb -f backend/database/seed.sql
 ```
 
 ---
@@ -154,6 +106,7 @@ psql -U postgres -d myappdb -f database/seed.sql
 ### 3. Backend Setup
 ```bash
 # Install dependencies
+cd backend
 npm install
 
 # Copy env template and fill in your values
@@ -352,6 +305,7 @@ Requires `SMTP_USER` + `SMTP_PASS` (Gmail App Password) in `.env`.
 ```bash
 # Backend — PM2 recommended
 npm install -g pm2
+cd backend
 NODE_ENV=production pm2 start src/server.js --name fleetflow-api
 
 # Frontend — build static files
