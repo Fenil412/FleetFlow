@@ -86,20 +86,16 @@ cd FleetFlow
 
 ---
 
-### 2. Database Setup
-```bash
-# Create the database
-psql -U postgres -c "CREATE DATABASE myappdb;"
+### 2. Database Setup (Neon PostgreSQL)
+1. **Create a Neon project**: Go to [neon.tech](https://neon.tech) and create a new project.
+2. **Get your Connection String**: Copy the `DATABASE_URL` from the Neon dashboard.
+3. **Initialize the Schema**:
+   In the `backend` directory, run:
+   ```bash
+   npm run db:init
+   ```
+   (This will connect to Neon via your `.env` variables and execute the required SQL schema.)
 
-# Run the schema
-psql -U postgres -d myappdb -f backend/database/schema.sql
-
-# Run profile migration
-psql -U postgres -d myappdb -f backend/database/migrations/001_add_user_profile.sql
-
-# Seed dummy data
-psql -U postgres -d myappdb -f backend/database/seed.sql
-```
 
 ---
 
@@ -111,7 +107,7 @@ npm install
 
 # Copy env template and fill in your values
 cp .env.sample .env
-# → Edit .env with DB credentials, JWT secret, Cloudinary keys, SMTP config
+# → Edit .env with your Neon DATABASE_URL, JWT secret, Cloudinary keys, and SMTP config
 
 # Start development server
 npm run dev
@@ -136,15 +132,6 @@ npm run dev
 **Frontend runs on:** `http://localhost:5173`
 
 ---
-
-### 5. Demo Credentials (after running seed.sql)
-
-| Email | Password | Role |
-|-------|----------|------|
-| `arjun.mehta@fleetflow.in` | `FleetFlow@123` | Fleet Manager |
-| `priya.sharma@fleetflow.in` | `FleetFlow@123` | Dispatcher |
-| `ravi.patel@fleetflow.in` | `FleetFlow@123` | Safety Officer |
-| `sneha.nair@fleetflow.in` | `FleetFlow@123` | Financial Analyst |
 
 ---
 
