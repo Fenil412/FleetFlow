@@ -21,9 +21,9 @@ FleetFlow is a **full-stack enterprise fleet management system** built with Reac
 | 📊 **Analytics** | Dashboard KPIs, vehicle ROI, monthly financials, PDF/CSV export — ₹ |
 | 🔐 **Auth & RBAC** | JWT, bcrypt, 4 roles (Fleet Manager / Dispatcher / Safety Officer / Financial Analyst) |
 | 👤 **User Profile** | Photo upload via Cloudinary, edit name/phone, change password |
-| 🔑 **Forgot Password** | 3-step OTP flow via email (request → verify OTP → reset) |
-| 📧 **Email Notifications** | Welcome, sign-in alert, OTP, password-reset-success (Nodemailer) |
+| 📧 **Email Notifications** | Welcome and OTP flow via EmailJS |
 | ⚡ **Real-time** | Socket.io for live fleet-wide status updates |
+
 | 🌙 **Dark Theme** | Full dark-mode with light-mode toggle across all pages |
 
 ---
@@ -38,8 +38,8 @@ FleetFlow/
 │   │   ├── server.js             # Server entry point
 │   │   ├── config/
 │   │   │   ├── db.js             # PostgreSQL pool
-│   │   │   ├── cloudinary.js     # Cloudinary SDK + uploadBuffer helper
-│   │   │   └── mailer.js         # Nodemailer SMTP transporter
+│   │   │   └── cloudinary.js     # Cloudinary SDK + uploadBuffer helper
+
 │   │   ├── controllers/          # ... and other subdirectories
 │   │   ├── routes/
 │   │   ├── services/
@@ -73,8 +73,10 @@ FleetFlow/
 - **Node.js** 18+
 - **PostgreSQL** 14+
 - **npm** 9+
-- A **Cloudinary** account (free tier is fine) — [cloudinary.com](https://cloudinary.com)
-- A **Gmail** account with an App Password for SMTP — [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+- An **EmailJS** account — [emailjs.com](https://emailjs.com)
+- Your **EmailJS Public Key**, **Service ID**, and **Private Key**.
+- 2 **Email Templates** created in EmailJS (Welcome and OTP).
+
 
 ---
 
@@ -232,7 +234,7 @@ GET  /api/analytics/driver-performance# Driver scores and incidents
 | Socket.io | 4 | WebSocket server |
 | Multer | — | File upload (memory) |
 | Cloudinary SDK | — | Avatar storage |
-| Nodemailer | — | Email (SMTP) |
+| Axios | — | HTTP client (EmailJS REST API) |
 | express-validator | — | Input validation |
 | Helmet | — | HTTP security headers |
 | Morgan | — | Request logging |
@@ -271,12 +273,15 @@ GET  /api/analytics/driver-performance# Driver scores and incidents
 
 | Trigger | Email sent |
 |---------|-----------|
+| Trigger | Email sent |
+|---------|-----------|
 | User registers | Welcome email with role |
-| User logs in | Sign-in alert with timestamp |
 | Forgot password | 6-digit OTP (10-min expiry) |
-| Password reset | Success confirmation |
 
-Requires `SMTP_USER` + `SMTP_PASS` (Gmail App Password) in `.env`.
+
+Requires `EMAILJS_SERVICE_ID`, `EMAILJS_PUBLIC_KEY`, and `EMAILJS_PRIVATE_KEY` in `.env`.
+Generate these in your [EmailJS Dashboard](https://dashboard.emailjs.com/).
+
 
 ---
 
