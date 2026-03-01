@@ -10,6 +10,11 @@ import {
     sendOTPEmail,
     sendPasswordResetSuccessEmail,
 } from './email.service.js';
+import {
+    sendWelcomeSMS,
+    sendOTPSMS,
+    sendPasswordResetSuccessSMS,
+} from './sms.service.js';
 
 // ────────────────────────────────────────────────
 // Auth
@@ -41,7 +46,8 @@ export const login = async (email, password) => {
     return { user: safeUser, token };
 };
 
-export const register = async (name, email, password, roleName) => {
+export const register = async (name, email, password, phone, roleName) => {
+    if (!phone) throw new ApiError(400, 'Phone number is mandatory');
     const userCount = await query('SELECT COUNT(*) FROM users');
     const isFirstUser = parseInt(userCount.rows[0].count) === 0;
     const finalRole = roleName || (isFirstUser ? 'FLEET_MANAGER' : 'DISPATCHER');
@@ -56,13 +62,15 @@ export const register = async (name, email, password, roleName) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await query(
-        'INSERT INTO users (name, email, password_hash, role_id) VALUES ($1, $2, $3, $4) RETURNING id, name, email, created_at',
-        [name, email, hashedPassword, roleId]
+        'INSERT INTO users (name, email, password_hash, phone, role_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, phone, created_at',
+        [name, email, hashedPassword, phone, roleId]
     );
 
-    // Send welcome email (non-blocking)
+    // Send welcome notifications (non-blocking)
     sendWelcomeEmail(email, name, finalRole).catch(() => { });
-
+    if (phone) {
+        sendWelcomeSMS(phone, name, finalRole).catch(() => { });
+    }
     return result.rows[0];
 };
 
@@ -86,6 +94,9 @@ export const forgotPassword = async (email) => {
     );
 
     await sendOTPEmail(email, user.name, otp);
+    if (user.phone) {
+        await sendOTPSMS(user.phone, user.name, otp);
+    }
     return { message: 'OTP sent to your email' };
 };
 
@@ -127,6 +138,9 @@ export const resetPassword = async (resetToken, newPassword) => {
     );
 
     await sendPasswordResetSuccessEmail(user.email, user.name);
+    if (user.phone) {
+        await sendPasswordResetSuccessSMS(user.phone, user.name);
+    }
     return { message: 'Password updated successfully' };
 };
 
@@ -179,5 +193,8 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
     );
 
     await sendPasswordResetSuccessEmail(user.email, user.name);
+    if (user.phone) {
+        await sendPasswordResetSuccessSMS(user.phone, user.name);
+    }
     return { message: 'Password changed successfully' };
 };

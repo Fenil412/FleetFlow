@@ -147,7 +147,7 @@ const Maintenance = () => {
                                     </td>
                                     <td className="px-6 py-5 text-sm text-text-secondary font-medium max-w-[200px] truncate">{log.description || '---'}</td>
                                     <td className="px-6 py-5 text-sm text-text-secondary font-medium">{formatSafeDate(log.service_date)}</td>
-                                    <td className="px-6 py-5 font-bold text-text-primary">${parseFloat(log.cost || 0).toLocaleString()}</td>
+                                    <td className="px-6 py-5 font-bold text-text-primary">₹{parseFloat(log.cost || 0).toLocaleString('en-IN')}</td>
                                     {isManager && (
                                         <td className="px-6 py-5">
                                             <div className="flex items-center justify-end gap-2">
@@ -193,7 +193,7 @@ const Maintenance = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Cost ($)</label>
+                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Cost (₹)</label>
                                         <input required type="number" min="0" step="0.01" value={formData.cost} onChange={e => setFormData({ ...formData, cost: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
                                     </div>
                                 </div>

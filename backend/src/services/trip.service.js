@@ -1,6 +1,8 @@
 import pool, { query } from '../config/db.js';
 import { ApiError } from '../middleware/error.middleware.js';
 import { isExpired } from '../utils/date.utils.js';
+import { sendEmail } from './email.service.js';
+import { sendTripDispatchSMS } from './sms.service.js';
 
 export const createTripDraft = async (data, userId) => {
     const { vehicle_id, driver_id, cargo_weight_kg, origin, destination } = data;

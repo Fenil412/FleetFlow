@@ -1,5 +1,6 @@
 import pool, { query } from '../config/db.js';
 import { ApiError } from '../middleware/error.middleware.js';
+import { sendMaintenanceAlertEmail } from './email.service.js';
 
 export const createMaintenanceLog = async (data, userId) => {
     const { vehicle_id, service_type, description, cost, service_date, next_service_due } = data;
@@ -18,6 +19,16 @@ export const createMaintenanceLog = async (data, userId) => {
 
         await client.query("UPDATE vehicles SET status = 'IN_SHOP' WHERE id = $1", [vehicle_id]);
         await client.query('COMMIT');
+
+        // Notify Manager (Non-blocking)
+        const vInfo = await query('SELECT name FROM vehicles WHERE id = $1', [vehicle_id]);
+        const vehicleName = vInfo.rows[0]?.name || 'Vehicle';
+        const notificationEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+
+        if (notificationEmail) {
+            sendMaintenanceAlertEmail(notificationEmail, vehicleName, service_type, cost).catch(() => { });
+        }
+
         return logRes.rows[0];
     } catch (err) {
         await client.query('ROLLBACK');

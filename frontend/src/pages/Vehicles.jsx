@@ -1,8 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../api/axios';
-import { Search, Plus, Filter, Truck, Bike, Car, Upload, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Search, Plus, Filter, Truck, Bike, Car, Upload, Edit2, Trash2, X, Check, Loader2, AlertCircle, Gauge } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
+
+// Memoized Row Component
+const VehicleRow = React.memo(({ vehicle, isManager, onEdit, onDelete, vehicleIcon, statusColor }) => (
+    <tr className="hover:bg-background/50 transition-colors group">
+        <td className="px-6 py-5">
+            <div className="flex items-center">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mr-4 group-hover:bg-primary group-hover:text-white transition-all">
+                    {vehicleIcon(vehicle.vehicle_type)}
+                </div>
+                <div>
+                    <p className="font-bold text-text-primary leading-none">{vehicle.name}</p>
+                    <p className="text-xs font-semibold text-text-secondary mt-1">{vehicle.license_plate}</p>
+                </div>
+            </div>
+        </td>
+        <td className="px-6 py-5">
+            <span className="text-sm font-semibold text-text-primary px-3 py-1 bg-background rounded-lg border border-border">
+                {vehicle.vehicle_type}
+            </span>
+        </td>
+        <td className="px-6 py-5 text-center">
+            <p className="text-sm font-bold text-text-primary">
+                {((vehicle.max_capacity_kg || 0) / 1000).toFixed(1)}t
+            </p>
+        </td>
+        <td className="px-6 py-5">
+            <div className="flex items-center gap-2">
+                <Gauge size={14} className="text-text-secondary/50" />
+                <span className="text-sm font-bold text-text-primary">
+                    {vehicle.odometer_km?.toLocaleString()} <span className="text-[10px] text-text-secondary uppercase">km</span>
+                </span>
+            </div>
+        </td>
+        <td className="px-6 py-5">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusColor(vehicle.status)}`}>
+                {vehicle.status.replace('_', ' ')}
+            </span>
+        </td>
+        {isManager && (
+            <td className="px-6 py-5">
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => onEdit(vehicle)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={16} /></button>
+                    <button onClick={() => onDelete(vehicle.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={16} /></button>
+                </div>
+            </td>
+        )}
+    </tr>
+));
 
 const Vehicles = () => {
     const { user } = useAuth();
@@ -16,26 +64,26 @@ const Vehicles = () => {
         name: '', license_plate: '', vehicle_type: 'Truck', max_capacity_kg: 2000, odometer_km: 0, status: 'AVAILABLE'
     });
 
-    const fetchVehicles = async () => {
+    const fetchVehicles = useCallback(async () => {
         try {
             const res = await api.get('/vehicles');
-            setVehicles(res.data.data.vehicles);
+            setVehicles(res.data.data.vehicles || []);
         } catch (err) {
             console.error('Failed to fetch vehicles', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchVehicles(); }, []);
+    useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
-    const openCreate = () => {
+    const handleOpenCreate = useCallback(() => {
         setEditingVehicle(null);
         setFormData({ name: '', license_plate: '', vehicle_type: 'Truck', max_capacity_kg: 2000, odometer_km: 0, status: 'AVAILABLE' });
         setShowRegisterModal(true);
-    };
+    }, []);
 
-    const openEdit = (vehicle) => {
+    const handleOpenEdit = useCallback((vehicle) => {
         setEditingVehicle(vehicle);
         setFormData({
             name: vehicle.name, license_plate: vehicle.license_plate,
@@ -43,7 +91,7 @@ const Vehicles = () => {
             odometer_km: vehicle.odometer_km, status: vehicle.status
         });
         setShowRegisterModal(true);
-    };
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -78,7 +126,13 @@ const Vehicles = () => {
             let ok = 0, fail = 0;
             for (const item of data) {
                 try {
-                    await api.post('/vehicles', { name: item.name, license_plate: item.license_plate, vehicle_type: item.vehicle_type || 'Truck', max_capacity_kg: parseInt(item.max_capacity_kg) || 2000, odometer_km: parseInt(item.odometer_km) || 0 });
+                    await api.post('/vehicles', {
+                        name: item.name,
+                        license_plate: item.license_plate,
+                        vehicle_type: item.vehicle_type || 'Truck',
+                        max_capacity_kg: parseInt(item.max_capacity_kg) || 2000,
+                        odometer_km: parseInt(item.odometer_km) || 0
+                    });
                     ok++;
                 } catch { fail++; }
             }
@@ -88,7 +142,7 @@ const Vehicles = () => {
         reader.readAsText(file);
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         if (!window.confirm('Decommission this vehicle?')) return;
         const t = toast.loading('Decommissioning...');
         try {
@@ -98,25 +152,43 @@ const Vehicles = () => {
         } catch (err) {
             toast.error('Action denied: active trip constraint.', { id: t });
         }
-    };
+    }, [fetchVehicles]);
 
-    const filteredVehicles = vehicles.filter(v => {
-        const search = `${v.name} ${v.license_plate}`.toLowerCase().includes(searchTerm.toLowerCase());
-        const status = statusFilter === 'ALL' || v.status === statusFilter;
-        return search && status;
-    });
+    const filteredVehicles = useMemo(() =>
+        vehicles.filter(v => {
+            const search = `${v.name} ${v.license_plate}`.toLowerCase().includes(searchTerm.toLowerCase());
+            const status = statusFilter === 'ALL' || v.status === statusFilter;
+            return search && status;
+        })
+        , [vehicles, searchTerm, statusFilter]);
 
-    const statusColor = (s) => {
-        const map = { AVAILABLE: 'bg-success/10 text-success border-success/20', ON_TRIP: 'bg-primary/10 text-primary border-primary/20', IN_SHOP: 'bg-warning/10 text-warning border-warning/20', OUT_OF_SERVICE: 'bg-danger/10 text-danger border-danger/20' };
+    const statusColor = useCallback((s) => {
+        const map = {
+            AVAILABLE: 'bg-success/10 text-success border-success/20',
+            ON_TRIP: 'bg-primary/10 text-primary border-primary/20',
+            IN_SHOP: 'bg-warning/10 text-warning border-warning/20',
+            OUT_OF_SERVICE: 'bg-danger/10 text-danger border-danger/20'
+        };
         return map[s] || 'bg-gray-100 text-gray-500';
-    };
+    }, []);
 
-    const vehicleIcon = (t) => t === 'Truck' ? <Truck size={20} /> : t === 'Bike' ? <Bike size={20} /> : <Car size={20} />;
+    const vehicleIcon = useCallback((t) =>
+        t === 'Truck' ? <Truck size={20} /> : t === 'Bike' ? <Bike size={20} /> : <Car size={20} />
+        , []);
 
-    const isManager = user?.role_name === 'FLEET_MANAGER';
+    const isManager = useMemo(() => user?.role_name === 'FLEET_MANAGER', [user?.role_name]);
+
+    if (loading) return (
+        <div className="flex h-[60vh] items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="animate-spin text-primary" size={40} />
+                <p className="text-sm font-black text-text-secondary uppercase tracking-[0.3em] animate-pulse">Syncing Fleet Registry</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-text-primary">Vehicle Registry</h2>
@@ -128,7 +200,7 @@ const Vehicles = () => {
                             <Upload size={20} /> Bulk Import
                             <input type="file" accept=".csv" className="hidden" onChange={handleBulkImport} />
                         </label>
-                        <button onClick={openCreate} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all outline-none">
+                        <button onClick={handleOpenCreate} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all outline-none">
                             <Plus size={20} /> Register Vehicle
                         </button>
                     </div>
@@ -161,40 +233,18 @@ const Vehicles = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {loading ? (
-                                [1, 2, 3].map(i => <tr key={i} className="animate-pulse"><td colSpan="6" className="px-6 py-4 h-16 bg-background/20" /></tr>)
-                            ) : filteredVehicles.length === 0 ? (
+                            {filteredVehicles.length === 0 ? (
                                 <tr><td colSpan="6" className="px-6 py-20 text-center font-bold text-text-secondary uppercase tracking-widest">No vehicles match your search</td></tr>
                             ) : filteredVehicles.map(vehicle => (
-                                <tr key={vehicle.id} className="hover:bg-background/50 transition-colors group">
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center">
-                                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mr-4 group-hover:bg-primary group-hover:text-white transition-all">
-                                                {vehicleIcon(vehicle.vehicle_type)}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-text-primary leading-none">{vehicle.name}</p>
-                                                <p className="text-xs font-semibold text-text-secondary mt-1">{vehicle.license_plate}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5"><span className="text-sm font-semibold text-text-primary px-3 py-1 bg-background rounded-lg border border-border">{vehicle.vehicle_type}</span></td>
-                                    <td className="px-6 py-5 text-center"><p className="text-sm font-bold text-text-primary">{(vehicle.max_capacity_kg / 1000).toFixed(1)}t</p></td>
-                                    <td className="px-6 py-5"><p className="text-sm font-bold text-text-primary">{vehicle.odometer_km?.toLocaleString()} KM</p></td>
-                                    <td className="px-6 py-5">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusColor(vehicle.status)}`}>
-                                            {vehicle.status.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    {isManager && (
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => openEdit(vehicle)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(vehicle.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={16} /></button>
-                                            </div>
-                                        </td>
-                                    )}
-                                </tr>
+                                <VehicleRow
+                                    key={vehicle.id}
+                                    vehicle={vehicle}
+                                    isManager={isManager}
+                                    onEdit={handleOpenEdit}
+                                    onDelete={handleDelete}
+                                    vehicleIcon={vehicleIcon}
+                                    statusColor={statusColor}
+                                />
                             ))}
                         </tbody>
                     </table>

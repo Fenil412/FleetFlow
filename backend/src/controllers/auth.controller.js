@@ -10,8 +10,8 @@ export const login = asyncWrapper(async (req, res) => {
 });
 
 export const register = asyncWrapper(async (req, res) => {
-    const { name, email, password, role } = req.body;
-    const user = await authService.register(name, email, password, role);
+    const { name, email, password, phone, role } = req.body;
+    const user = await authService.register(name, email, password, phone, role);
     res.status(201).json({ status: 'success', data: { user } });
 });
 

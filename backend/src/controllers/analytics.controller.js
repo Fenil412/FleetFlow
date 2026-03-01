@@ -20,3 +20,13 @@ export const getFinancials = asyncWrapper(async (req, res) => {
     const data = await analyticsService.getMonthlyFinancials();
     res.json({ status: 'success', data: { monthly: data } });
 });
+
+export const getDailyProfit = asyncWrapper(async (req, res) => {
+    const data = await analyticsService.getDailyProfit();
+    res.json({ status: 'success', data });
+});
+
+export const getBookingGeography = asyncWrapper(async (req, res) => {
+    const data = await analyticsService.getBookingGeography();
+    res.json({ status: 'success', data });
+});

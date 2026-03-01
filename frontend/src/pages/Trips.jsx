@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../api/axios';
 import { Navigation, Loader2, X, Check, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -19,6 +19,51 @@ const STATUS_LABEL = {
     CANCELLED: 'Cancelled',
 };
 
+// Memoized Trip Row Component
+const TripRow = React.memo(({ trip, canDispatch, onDispatch, onComplete, onCancel }) => (
+    <tr className="hover:bg-background/50 transition-colors group">
+        <td className="px-6 py-4 font-black text-text-primary">#{trip.id}</td>
+        <td className="px-6 py-4 text-sm font-bold text-text-secondary">
+            {trip.vehicle_type || 'Fleet'}
+        </td>
+        <td className="px-6 py-4">
+            <span className="font-bold text-text-primary text-sm">{trip.vehicle_name || 'N/A'}</span>
+        </td>
+        <td className="px-6 py-4">
+            <span className="text-sm font-medium text-text-secondary">{trip.driver_name || 'N/A'}</span>
+        </td>
+        <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.origin}</td>
+        <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.destination}</td>
+        <td className="px-6 py-4 text-xs font-bold text-text-secondary">{formatSafeDate(trip.created_at)}</td>
+        <td className="px-6 py-4">
+            <span className={`text-xs font-black uppercase ${STATUS_COLOR[trip.status] || 'text-text-secondary'}`}>
+                {STATUS_LABEL[trip.status] || trip.status}
+            </span>
+        </td>
+        {canDispatch && (
+            <td className="px-6 py-4">
+                <div className="flex items-center justify-end gap-2 text-right">
+                    {trip.status === 'DRAFT' && (
+                        <button onClick={() => onDispatch(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all outline-none">
+                            Dispatch
+                        </button>
+                    )}
+                    {trip.status === 'DISPATCHED' && (
+                        <button onClick={() => onComplete(trip)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all outline-none">
+                            Complete
+                        </button>
+                    )}
+                    {(trip.status === 'DRAFT' || trip.status === 'DISPATCHED') && (
+                        <button onClick={() => onCancel(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all outline-none">
+                            Cancel
+                        </button>
+                    )}
+                </div>
+            </td>
+        )}
+    </tr>
+));
+
 const Trips = () => {
     const { user } = useAuth();
     const [trips, setTrips] = useState([]);
@@ -36,12 +81,7 @@ const Trips = () => {
     const [completingTrip, setCompletingTrip] = useState(null);
     const [completeForm, setCompleteForm] = useState({ end_odometer: '', revenue: '' });
 
-    // Stats
-    const activeFleet = trips.filter(t => t.status === 'DISPATCHED').length;
-    const pendingCargo = trips.filter(t => t.status === 'DRAFT').length;
-    const completed = trips.filter(t => t.status === 'COMPLETED').length;
-
-    const fetchTrips = async () => {
+    const fetchTrips = useCallback(async () => {
         try {
             const res = await api.get('/trips');
             setTrips(res.data?.data?.trips || []);
@@ -50,9 +90,9 @@ const Trips = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const fetchResources = async () => {
+    const fetchResources = useCallback(async () => {
         try {
             const [vRes, dRes] = await Promise.all([
                 api.get('/vehicles'),
@@ -63,9 +103,16 @@ const Trips = () => {
         } catch (err) {
             console.error('Failed to fetch resources', err);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchTrips(); }, []);
+    useEffect(() => { fetchTrips(); }, [fetchTrips]);
+
+    // KPIs - Memoized
+    const stats = useMemo(() => ({
+        activeFleet: trips.filter(t => t.status === 'DISPATCHED').length,
+        pendingCargo: trips.filter(t => t.status === 'DRAFT').length,
+        completed: trips.filter(t => t.status === 'COMPLETED').length,
+    }), [trips]);
 
     const handleCreateTrip = async (e) => {
         e.preventDefault();
@@ -81,7 +128,7 @@ const Trips = () => {
         }
     };
 
-    const handleDispatch = async (id) => {
+    const handleDispatch = useCallback(async (id) => {
         const t = toast.loading('Dispatching...');
         try {
             await api.patch(`/trips/${id}/dispatch`);
@@ -90,12 +137,12 @@ const Trips = () => {
         } catch (err) {
             toast.error(err.response?.data?.message || 'Dispatch failed', { id: t });
         }
-    };
+    }, [fetchTrips]);
 
-    const openCompleteModal = (trip) => {
+    const openCompleteModal = useCallback((trip) => {
         setCompletingTrip(trip);
         setCompleteForm({ end_odometer: '', revenue: '' });
-    };
+    }, []);
 
     const handleComplete = async (e) => {
         e.preventDefault();
@@ -113,7 +160,7 @@ const Trips = () => {
         }
     };
 
-    const handleCancel = async (id) => {
+    const handleCancel = useCallback(async (id) => {
         if (!window.confirm('Cancel and delete this trip? This will release the vehicle and driver.')) return;
         const t = toast.loading('Cancelling trip...');
         try {
@@ -123,21 +170,30 @@ const Trips = () => {
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to cancel trip', { id: t });
         }
-    };
+    }, [fetchTrips]);
 
-    const canDispatch = ['FLEET_MANAGER', 'DISPATCHER'].includes(user?.role_name);
+    const canDispatch = useMemo(() =>
+        ['FLEET_MANAGER', 'DISPATCHER'].includes(user?.role_name)
+        , [user?.role_name]);
 
-    const filteredTrips = trips.filter(t => {
-        const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
-        const matchSearch = t.vehicle_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.destination?.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchStatus && matchSearch;
-    });
+    const filteredTrips = useMemo(() =>
+        trips.filter(t => {
+            const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
+            const matchSearch = t.vehicle_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                t.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                t.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                t.destination?.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchStatus && matchSearch;
+        })
+        , [trips, statusFilter, searchTerm]);
+
+    const handleShowNewTrip = useCallback(() => {
+        setShowNewTripForm(v => !v);
+        fetchResources();
+    }, [fetchResources]);
 
     return (
-        <div className="space-y-6 text-text-primary">
+        <div className="space-y-6 text-text-primary animate-fade-in">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -147,7 +203,7 @@ const Trips = () => {
                 <div className="flex gap-2">
                     {canDispatch && (
                         <button
-                            onClick={() => { setShowNewTripForm(v => !v); fetchResources(); }}
+                            onClick={handleShowNewTrip}
                             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none"
                         >
                             <Navigation size={16} /> New Trip
@@ -159,9 +215,9 @@ const Trips = () => {
             {/* KPI Cards */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'Active Fleet', value: activeFleet, color: 'text-primary' },
-                    { label: 'Pending Cargo', value: pendingCargo, color: 'text-yellow-400' },
-                    { label: 'Completed', value: completed, color: 'text-success' },
+                    { label: 'Active Fleet', value: stats.activeFleet, color: 'text-primary' },
+                    { label: 'Pending Cargo', value: stats.pendingCargo, color: 'text-yellow-400' },
+                    { label: 'Completed', value: stats.completed, color: 'text-success' },
                 ].map(kpi => (
                     <div key={kpi.label} className="bg-card rounded-2xl border border-border p-5 text-center shadow-sm">
                         <p className="text-xs font-bold uppercase tracking-widest text-text-secondary mb-2">{kpi.label}</p>
@@ -218,57 +274,23 @@ const Trips = () => {
                                     </td>
                                 </tr>
                             ) : filteredTrips.map(trip => (
-                                <tr key={trip.id} className="hover:bg-background/50 transition-colors group">
-                                    <td className="px-6 py-4 font-black text-text-primary">#{trip.id}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-text-secondary">
-                                        {/* vehicle_type is not joined — show cargo_details as fleet info */}
-                                        {trip.vehicle_type || 'Fleet'}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="font-bold text-text-primary text-sm">{trip.vehicle_name || 'N/A'}</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-sm font-medium text-text-secondary">{trip.driver_name || 'N/A'}</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.origin}</td>
-                                    <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.destination}</td>
-                                    <td className="px-6 py-4 text-xs font-bold text-text-secondary">{formatSafeDate(trip.created_at)}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`text-xs font-black uppercase ${STATUS_COLOR[trip.status] || 'text-text-secondary'}`}>
-                                            {STATUS_LABEL[trip.status] || trip.status}
-                                        </span>
-                                    </td>
-                                    {canDispatch && (
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {trip.status === 'DRAFT' && (
-                                                    <button onClick={() => handleDispatch(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all outline-none">
-                                                        Dispatch
-                                                    </button>
-                                                )}
-                                                {trip.status === 'DISPATCHED' && (
-                                                    <button onClick={() => openCompleteModal(trip)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all outline-none">
-                                                        Complete
-                                                    </button>
-                                                )}
-                                                {(trip.status === 'DRAFT' || trip.status === 'DISPATCHED') && (
-                                                    <button onClick={() => handleCancel(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all outline-none">
-                                                        Cancel
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    )}
-                                </tr>
+                                <TripRow
+                                    key={trip.id}
+                                    trip={trip}
+                                    canDispatch={canDispatch}
+                                    onDispatch={handleDispatch}
+                                    onComplete={openCompleteModal}
+                                    onCancel={handleCancel}
+                                />
                             ))}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* New Trip Form (inline below table, matches screenshot) */}
+            {/* New Trip Form */}
             {showNewTripForm && canDispatch && (
-                <div className="bg-card rounded-3xl border border-border shadow-sm p-8">
+                <div className="bg-card rounded-3xl border border-border shadow-sm p-8 animate-scale-in">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-black text-text-primary uppercase tracking-wider">New Trip Form</h3>
                         <button onClick={() => setShowNewTripForm(false)} className="p-2 rounded-xl text-text-secondary hover:bg-background transition-colors outline-none"><X size={18} /></button>
@@ -293,7 +315,7 @@ const Trips = () => {
                             </select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Estimated Fuel Cost ($)</label>
+                            <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Estimated Fuel Cost (₹)</label>
                             <input type="number" min="0" step="0.01" value={formData.cargo_details} onChange={e => setFormData({ ...formData, cargo_details: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" placeholder="Optional estimate" />
                         </div>
                         <div className="space-y-1.5">
@@ -315,8 +337,8 @@ const Trips = () => {
 
             {/* Complete Trip Modal */}
             {completingTrip && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-card border border-border w-full max-w-md rounded-3xl shadow-2xl p-8">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-card border border-border w-full max-w-md rounded-3xl shadow-2xl p-8 animate-scale-in">
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h3 className="text-xl font-bold text-text-primary">Complete Trip #{completingTrip.id}</h3>

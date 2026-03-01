@@ -1,9 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../api/axios';
 import { Fuel, Calendar, IndianRupee, Droplets, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
+
+// Memoized Row Component
+const FuelLogRow = React.memo(({ log, canManage, onEdit, onDelete }) => (
+    <tr className="hover:bg-background/50 transition-colors">
+        <td className="px-6 py-4">
+            <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Fuel size={14} /></div>
+                <span className="text-sm font-bold text-text-primary">{log.vehicle_name}</span>
+            </div>
+        </td>
+        <td className="px-6 py-4 text-sm font-bold text-text-primary">{log.liters ?? '---'} L</td>
+        <td className="px-6 py-4 text-sm font-semibold text-text-secondary">₹{log.cost ?? '---'}</td>
+        <td className="px-6 py-4 text-sm text-text-secondary">{log.odometer_km ? `${parseFloat(log.odometer_km).toLocaleString()} km` : '---'}</td>
+        <td className="px-6 py-4 text-xs font-bold text-text-secondary uppercase">{formatSafeDate(log.fuel_date)}</td>
+        {canManage && (
+            <td className="px-6 py-4">
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => onEdit(log)} className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={14} /></button>
+                    <button onClick={() => onDelete(log.id)} className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={14} /></button>
+                </div>
+            </td>
+        )}
+    </tr>
+));
 
 const FuelLogs = () => {
     const { user } = useAuth();
@@ -16,10 +40,10 @@ const FuelLogs = () => {
         vehicle_id: '', liters: 0, price_per_liter: 0, fuel_date: new Date().toISOString().split('T')[0], odometer_km: 0
     });
 
-    const totalCost = logs.reduce((sum, l) => sum + parseFloat(l.cost || 0), 0);
-    const totalLiters = logs.reduce((sum, l) => sum + parseFloat(l.liters || 0), 0);
+    const totalCost = useMemo(() => logs.reduce((sum, l) => sum + parseFloat(l.cost || 0), 0), [logs]);
+    const totalLiters = useMemo(() => logs.reduce((sum, l) => sum + parseFloat(l.liters || 0), 0), [logs]);
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         try {
             const res = await api.get('/fuel');
             setLogs(res.data?.data?.logs || []);
@@ -28,27 +52,27 @@ const FuelLogs = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const fetchVehicles = async () => {
+    const fetchVehicles = useCallback(async () => {
         try {
             const res = await api.get('/vehicles');
             setVehicles(res.data.data.vehicles);
         } catch (err) {
             console.error('Failed to fetch vehicles', err);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchLogs(); }, []);
+    useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-    const openCreate = () => {
+    const openCreate = useCallback(() => {
         setEditingLog(null);
         setFormData({ vehicle_id: '', liters: 0, price_per_liter: 0, fuel_date: new Date().toISOString().split('T')[0], odometer_km: 0 });
         fetchVehicles();
         setShowModal(true);
-    };
+    }, [fetchVehicles]);
 
-    const openEdit = (log) => {
+    const openEdit = useCallback((log) => {
         setEditingLog(log);
         setFormData({
             vehicle_id: log.vehicle_id,
@@ -58,7 +82,7 @@ const FuelLogs = () => {
             odometer_km: log.odometer_km || 0
         });
         setShowModal(true);
-    };
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -83,7 +107,7 @@ const FuelLogs = () => {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         if (!window.confirm('Delete this fuel log entry?')) return;
         const t = toast.loading('Deleting...');
         try {
@@ -93,9 +117,9 @@ const FuelLogs = () => {
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to delete', { id: t });
         }
-    };
+    }, [fetchLogs]);
 
-    const canManage = ['FLEET_MANAGER', 'FINANCIAL_ANALYST'].includes(user?.role_name);
+    const canManage = useMemo(() => ['FLEET_MANAGER', 'FINANCIAL_ANALYST'].includes(user?.role_name), [user?.role_name]);
 
     return (
         <div className="space-y-6">
@@ -156,26 +180,13 @@ const FuelLogs = () => {
                                             <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No fuel logs yet</p>
                                         </td></tr>
                                     ) : logs.map(log => (
-                                        <tr key={log.id} className="hover:bg-background/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Fuel size={14} /></div>
-                                                    <span className="text-sm font-bold text-text-primary">{log.vehicle_name}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm font-bold text-text-primary">{log.liters ?? '---'} L</td>
-                                            <td className="px-6 py-4 text-sm font-semibold text-text-secondary">₹{log.cost ?? '---'}</td>
-                                            <td className="px-6 py-4 text-sm text-text-secondary">{log.odometer_km ? `${parseFloat(log.odometer_km).toLocaleString()} km` : '---'}</td>
-                                            <td className="px-6 py-4 text-xs font-bold text-text-secondary uppercase">{formatSafeDate(log.fuel_date)}</td>
-                                            {canManage && (
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button onClick={() => openEdit(log)} className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={14} /></button>
-                                                        <button onClick={() => handleDelete(log.id)} className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={14} /></button>
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
+                                        <FuelLogRow
+                                            key={log.id}
+                                            log={log}
+                                            canManage={canManage}
+                                            onEdit={openEdit}
+                                            onDelete={handleDelete}
+                                        />
                                     ))}
                                 </tbody>
                             </table>

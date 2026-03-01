@@ -16,6 +16,7 @@ class SplineErrorBoundary extends Component {
 const SignUp = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('DISPATCHER');
     const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +30,7 @@ const SignUp = () => {
         e.preventDefault();
         setError('');
         setIsSubmitting(true);
-        const result = await signUp(name, email, password, role);
+        const result = await signUp(name, email, password, phone, role);
         if (result.success) {
             navigate('/');
         } else {
@@ -93,6 +94,19 @@ const SignUp = () => {
                                         </div>
                                         <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                                             placeholder="admin@fleetflow.com"
+                                            className="block w-full rounded-xl border-0 bg-background/60 pl-11 pr-4 py-3.5 text-text-primary ring-1 ring-inset ring-border placeholder:text-text-secondary/50 focus:ring-2 focus:ring-inset focus:ring-primary transition-all outline-none backdrop-blur-sm" />
+                                    </div>
+                                </div>
+
+                                {/* Phone */}
+                                <div>
+                                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2 ml-1">Phone Number</label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-text-secondary group-focus-within:text-primary transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" size={18} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                                        </div>
+                                        <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                                            placeholder="9913312353"
                                             className="block w-full rounded-xl border-0 bg-background/60 pl-11 pr-4 py-3.5 text-text-primary ring-1 ring-inset ring-border placeholder:text-text-secondary/50 focus:ring-2 focus:ring-inset focus:ring-primary transition-all outline-none backdrop-blur-sm" />
                                     </div>
                                 </div>

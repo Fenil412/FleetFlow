@@ -92,3 +92,60 @@ export const getMonthlyFinancials = async () => {
   `);
   return result.rows;
 };
+
+export const getDailyProfit = async () => {
+  const result = await query(`
+        WITH days AS (
+            SELECT generate_series(
+                CURRENT_DATE - INTERVAL '29 days',
+                CURRENT_DATE,
+                '1 day'::interval
+            )::date as date
+        ),
+        daily_revenue AS (
+            SELECT created_at::date as date, SUM(revenue) as revenue
+            FROM trips
+            WHERE status = 'COMPLETED' AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY date
+        ),
+        daily_fuel AS (
+            SELECT fuel_date::date as date, SUM(cost) as cost
+            FROM fuel_logs
+            WHERE fuel_date >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY date
+        ),
+        daily_maint AS (
+            SELECT service_date as date, SUM(cost) as cost
+            FROM maintenance_logs
+            WHERE service_date >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY date
+        )
+        SELECT 
+            d.date,
+            COALESCE(r.revenue, 0) as revenue,
+            COALESCE(f.cost, 0) as fuel_cost,
+            COALESCE(m.cost, 0) as maintenance_cost,
+            (COALESCE(r.revenue, 0) - COALESCE(f.cost, 0) - COALESCE(m.cost, 0)) as profit
+        FROM days d
+        LEFT JOIN daily_revenue r ON d.date = r.date
+        LEFT JOIN daily_fuel f ON d.date = f.date
+        LEFT JOIN daily_maint m ON d.date = m.date
+        ORDER BY d.date ASC
+    `);
+  return result.rows;
+};
+
+export const getBookingGeography = async () => {
+  const result = await query(`
+        SELECT 
+            origin as city,
+            COUNT(*) as booking_count,
+            SUM(revenue) as total_revenue
+        FROM trips
+        WHERE status != 'CANCELLED'
+        GROUP BY origin
+        ORDER BY booking_count DESC
+        LIMIT 10
+    `);
+  return result.rows;
+};
