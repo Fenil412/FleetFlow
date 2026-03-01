@@ -12,6 +12,7 @@ import tripRoutes from './routes/trip.routes.js';
 import maintenanceRoutes from './routes/maintenance.routes.js';
 import fuelRoutes from './routes/fuel.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import aiRoutes from './routes/ai.routes.js';
 
 
 
@@ -33,6 +34,7 @@ app.use('/api/trips', tripRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/fuel', fuelRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/ai', aiRoutes);
 
 
 
