@@ -5,35 +5,346 @@
 @layer base {
   :root {
     --color-primary: 37 99 235;
-    /* #2563EB */
     --color-background: 248 250 252;
-    /* #F8FAFC */
     --color-navy: 15 23 42;
-    /* #0F172A */
     --color-text-primary: 11 18 32;
-    /* #0B1220 */
     --color-text-secondary: 100 116 139;
-    /* #64748B */
     --color-card: 255 255 255;
     --color-border: 226 232 240;
   }
 
   .dark {
     --color-primary: 59 130 246;
-    /* Better contrast for dark */
     --color-background: 11 18 32;
-    /* Deep Navy */
     --color-navy: 15 23 42;
     --color-text-primary: 248 250 252;
     --color-text-secondary: 148 163 184;
     --color-card: 30 41 59;
-    /* Slate 800 */
     --color-border: 51 65 85;
-    /* Slate 700 */
   }
 
   body {
     @apply bg-background text-text-primary transition-colors duration-300;
+    overflow-x: hidden;
+  }
+
+  * {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ─── Keyframe Animations ─────────────────────────────── */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  33% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+
+  66% {
+    transform: translateY(-5px) rotate(-1deg);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--color-primary) / 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 8px rgb(var(--color-primary) / 0.15);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  75%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+@keyframes number-count {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Animation Utility Classes ───────────────────────── */
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 9s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2.5s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2.5s linear infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 12s linear infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s ease forwards;
+  }
+
+  .animate-ping-slow {
+    animation: ping-slow 2s ease-out infinite;
+  }
+
+  .animate-number {
+    animation: number-count 0.6s ease forwards;
+  }
+
+  /* ─── 3D Perspective Helpers ─── */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .perspective-800 {
+    perspective: 800px;
+  }
+
+  .transform-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  /* ─── Gradient Text ─── */
+  .gradient-text {
+    background: linear-gradient(135deg, rgb(var(--color-primary)), #8b5cf6, #06b6d4);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 4s ease infinite;
+  }
+
+  /* ─── Glow Effects ─── */
+  .glow-primary {
+    box-shadow: 0 0 20px rgb(var(--color-primary) / 0.35),
+      0 0 40px rgb(var(--color-primary) / 0.15);
+  }
+
+  .glow-success {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.35),
+      0 0 40px rgba(16, 185, 129, 0.15);
+  }
+
+  .glow-border {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgb(var(--color-primary) / 0.6), transparent 60%);
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    &:hover::after {
+      opacity: 1;
+    }
+  }
+
+  /* ─── Shine Sweep on Hover ─── */
+  .shine-card {
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.08) 50%, transparent 70%);
+      transform: skewX(-20deg);
+      transition: left 0.6s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    &:hover::before {
+      left: 150%;
+    }
+  }
+
+  /* ─── Shimmer Loading Skeleton ─── */
+  .skeleton {
+    background: linear-gradient(90deg,
+        rgb(var(--color-card)) 25%,
+        rgb(var(--color-border)) 50%,
+        rgb(var(--color-card)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  /* ─── Animated Gradient Border ─── */
+  .animated-border {
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      background: linear-gradient(90deg,
+          rgb(var(--color-primary)),
+          #8b5cf6, #06b6d4,
+          rgb(var(--color-primary)));
+      background-size: 300% 100%;
+      animation: border-flow 3s linear infinite;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    &:hover::before {
+      opacity: 1;
+    }
+  }
+
+  /* ─── Status Pulse Dot ─── */
+  .status-pulse {
+    position: relative;
+    display: inline-flex;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: currentColor;
+      animation: ping-slow 1.5s ease-out infinite;
+    }
+  }
+
+  /* ─── Custom Scrollbar ─── */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-primary) / 0.3) transparent;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgb(var(--color-primary) / 0.3);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgb(var(--color-primary) / 0.6);
+      }
+    }
   }
 }
 
@@ -45,5 +356,12 @@
   .glass-morphism {
     @apply backdrop-blur-xl border border-border;
     background-color: rgb(var(--color-card) / 0.6);
+  }
+
+  /* Floating orb decorations */
+  .orb {
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
   }
 }

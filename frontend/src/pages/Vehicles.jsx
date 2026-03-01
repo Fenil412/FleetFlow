@@ -1,17 +1,34 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../api/axios';
-import { Search, Plus, Filter, Truck, Bike, Car, Upload, Edit2, Trash2, X, Check, Loader2, AlertCircle, Gauge } from 'lucide-react';
+import { Search, Plus, Filter, Truck, Bike, Car, Upload, Edit2, Trash2, X, Check, Loader2, AlertCircle, Gauge, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
+import { motion } from 'framer-motion';
 
-// Memoized Row Component
-const VehicleRow = React.memo(({ vehicle, isManager, onEdit, onDelete, vehicleIcon, statusColor }) => (
-    <tr className="hover:bg-background/50 transition-colors group">
+const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.05, type: 'spring', stiffness: 260, damping: 25 } }),
+};
+
+
+// Memoized Animated Row Component
+const VehicleRow = React.memo(({ vehicle, isManager, onEdit, onDelete, vehicleIcon, statusColor, index }) => (
+    <motion.tr
+        custom={index}
+        variants={rowVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }}
+        className="transition-colors group"
+    >
         <td className="px-6 py-5">
             <div className="flex items-center">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mr-4 group-hover:bg-primary group-hover:text-white transition-all">
+                <motion.div
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mr-4 group-hover:bg-primary group-hover:text-white transition-all"
+                >
                     {vehicleIcon(vehicle.vehicle_type)}
-                </div>
+                </motion.div>
                 <div>
                     <p className="font-bold text-text-primary leading-none">{vehicle.name}</p>
                     <p className="text-xs font-semibold text-text-secondary mt-1">{vehicle.license_plate}</p>
@@ -37,20 +54,25 @@ const VehicleRow = React.memo(({ vehicle, isManager, onEdit, onDelete, vehicleIc
             </div>
         </td>
         <td className="px-6 py-5">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusColor(vehicle.status)}`}>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusColor(vehicle.status)}`}>
+                <span className="relative flex h-1.5 w-1.5">
+                    <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping`} />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
+                </span>
                 {vehicle.status.replace('_', ' ')}
             </span>
         </td>
         {isManager && (
             <td className="px-6 py-5">
                 <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => onEdit(vehicle)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={16} /></button>
-                    <button onClick={() => onDelete(vehicle.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={16} /></button>
+                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => onEdit(vehicle)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={16} /></motion.button>
+                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => onDelete(vehicle.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={16} /></motion.button>
                 </div>
             </td>
         )}
-    </tr>
+    </motion.tr>
 ));
+
 
 const Vehicles = () => {
     const { user } = useAuth();
@@ -188,24 +210,33 @@ const Vehicles = () => {
     );
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary">Vehicle Registry</h2>
+                    <div className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}>
+                            <Truck size={22} className="text-primary" />
+                        </motion.div>
+                        <h2 className="text-2xl font-bold gradient-text">Vehicle Registry</h2>
+                    </div>
                     <p className="text-sm text-text-secondary font-medium uppercase tracking-tighter mt-1">Manage and track fleet assets</p>
                 </div>
                 {isManager && (
                     <div className="flex gap-2">
-                        <label className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold text-text-primary hover:bg-background transition-all cursor-pointer outline-none">
+                        <motion.label whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}
+                            className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold text-text-primary hover:bg-background transition-all cursor-pointer outline-none">
                             <Upload size={20} /> Bulk Import
                             <input type="file" accept=".csv" className="hidden" onChange={handleBulkImport} />
-                        </label>
-                        <button onClick={handleOpenCreate} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all outline-none">
+                        </motion.label>
+                        <motion.button whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}
+                            onClick={handleOpenCreate} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-blue-700 transition-all outline-none">
                             <Plus size={20} /> Register Vehicle
-                        </button>
+                        </motion.button>
                     </div>
                 )}
-            </div>
+            </motion.div>
 
             <div className="flex flex-wrap items-center gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
                 <div className="relative flex-1 min-w-[240px]">
@@ -235,9 +266,10 @@ const Vehicles = () => {
                         <tbody className="divide-y divide-border">
                             {filteredVehicles.length === 0 ? (
                                 <tr><td colSpan="6" className="px-6 py-20 text-center font-bold text-text-secondary uppercase tracking-widest">No vehicles match your search</td></tr>
-                            ) : filteredVehicles.map(vehicle => (
+                            ) : filteredVehicles.map((vehicle, i) => (
                                 <VehicleRow
                                     key={vehicle.id}
+                                    index={i}
                                     vehicle={vehicle}
                                     isManager={isManager}
                                     onEdit={handleOpenEdit}

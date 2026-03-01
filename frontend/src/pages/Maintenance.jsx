@@ -4,6 +4,16 @@ import { Wrench, Calendar, Truck, AlertCircle, Plus, Edit2, Trash2, X, Check, Se
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
+import { motion } from 'framer-motion';
+
+const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({
+        opacity: 1, x: 0,
+        transition: { delay: i * 0.05, type: 'spring', stiffness: 260, damping: 25 },
+    }),
+};
+
 
 const SERVICE_TYPES = ['Routine', 'Oil Change', 'Tire Replacement', 'Brake Service', 'Engine Repair', 'Electrical', 'Inspection', 'Other'];
 
@@ -97,17 +107,25 @@ const Maintenance = () => {
 
     return (
         <div className="space-y-6 text-text-primary">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
                 <div>
-                    <h2 className="text-2xl font-bold">Service & Maintenance</h2>
+                    <div className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>
+                            <Wrench size={22} className="text-primary" />
+                        </motion.div>
+                        <h2 className="text-2xl font-bold gradient-text">Service &amp; Maintenance</h2>
+                    </div>
                     <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Asset health and repair history</p>
                 </div>
                 {isManager && (
-                    <button onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none">
+                    <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.96 }}
+                        onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none">
                         <Plus size={18} /> Log Service
-                    </button>
+                    </motion.button>
                 )}
-            </div>
+            </motion.div>
 
             <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
@@ -132,17 +150,30 @@ const Maintenance = () => {
                                 [1, 2, 3].map(i => <tr key={i} className="animate-pulse"><td colSpan="6" className="h-16 bg-background/20" /></tr>)
                             ) : filteredLogs.length === 0 ? (
                                 <tr><td colSpan="6" className="px-6 py-20 text-center font-bold text-text-secondary uppercase tracking-widest">No maintenance records found</td></tr>
-                            ) : filteredLogs.map(log => (
-                                <tr key={log.id} className="hover:bg-background/50 transition-colors">
+                            ) : filteredLogs.map((log, i) => (
+                                <motion.tr
+                                    key={log.id}
+                                    custom={i}
+                                    variants={rowVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }}
+                                    className="transition-colors"
+                                >
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-xl bg-warning/10 flex items-center justify-center text-warning"><Truck size={16} /></div>
+                                            <motion.div whileHover={{ rotate: 15, scale: 1.1 }} className="h-9 w-9 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
+                                                <Truck size={16} />
+                                            </motion.div>
                                             <span className="font-bold text-text-primary">{log.vehicle_name}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5">
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-primary/10 text-primary text-xs font-black uppercase">
-                                            <Wrench size={11} /> {log.service_type}
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-primary/10 text-primary text-xs font-black uppercase">
+                                            <motion.div animate={{ rotate: [0, 20, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}>
+                                                <Wrench size={11} />
+                                            </motion.div>
+                                            {log.service_type}
                                         </span>
                                     </td>
                                     <td className="px-6 py-5 text-sm text-text-secondary font-medium max-w-[200px] truncate">{log.description || '---'}</td>
@@ -151,12 +182,12 @@ const Maintenance = () => {
                                     {isManager && (
                                         <td className="px-6 py-5">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => openEdit(log)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={15} /></button>
-                                                <button onClick={() => handleDelete(log.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={15} /></button>
+                                                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => openEdit(log)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={15} /></motion.button>
+                                                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => handleDelete(log.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={15} /></motion.button>
                                             </div>
                                         </td>
                                     )}
-                                </tr>
+                                </motion.tr>
                             ))}
                         </tbody>
                     </table>

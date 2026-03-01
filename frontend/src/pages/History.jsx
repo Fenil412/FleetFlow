@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { History as HistoryIcon, Truck, Users, Navigation, Wrench, Fuel, Loader2, Filter } from 'lucide-react';
 import { formatSafeDate } from '../utils/dateUtils';
+import { motion } from 'framer-motion';
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.04, type: 'spring', stiffness: 260, damping: 24 } }),
+};
+
 
 const ENTITY_ICONS = {
     vehicle: Truck,
@@ -80,26 +87,36 @@ const History = () => {
     const filtered = filter === 'ALL' ? logs : logs.filter(l => l.type === filter.toLowerCase());
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary">Activity History</h2>
+                    <div className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}>
+                            <HistoryIcon size={22} className="text-primary" />
+                        </motion.div>
+                        <h2 className="text-2xl font-bold gradient-text">Activity History</h2>
+                    </div>
                     <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Complete audit trail of fleet operations</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Filter size={15} className="text-text-secondary" />
                     {['ALL', 'TRIP', 'MAINTENANCE', 'FUEL'].map(f => (
-                        <button
+                        <motion.button
                             key={f}
+                            whileHover={{ scale: 1.06 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => setFilter(f)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all outline-none ${filter === f ? 'bg-primary text-white' : 'bg-card border border-border text-text-secondary hover:bg-background'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all outline-none relative ${filter === f ? 'bg-primary text-white' : 'bg-card border border-border text-text-secondary hover:bg-background'
+                                }`}
                         >
                             {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                        </button>
+                        </motion.button>
                     ))}
                 </div>
-            </div>
+            </motion.div>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
@@ -107,11 +124,19 @@ const History = () => {
                     { label: 'Trips', count: logs.filter(l => l.type === 'trip').length, color: 'text-warning bg-warning/10' },
                     { label: 'Maintenance', count: logs.filter(l => l.type === 'maintenance').length, color: 'text-danger bg-danger/10' },
                     { label: 'Fuel Logs', count: logs.filter(l => l.type === 'fuel').length, color: 'text-purple-500 bg-purple-500/10' },
-                ].map(s => (
-                    <div key={s.label} className="bg-card rounded-2xl border border-border p-5 text-center shadow-sm">
+                ].map((s, i) => (
+                    <motion.div key={s.label}
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 + 0.2, type: 'spring', stiffness: 260 }}
+                        whileHover={{ y: -4, scale: 1.02 }}
+                        className="bg-card rounded-2xl border border-border p-5 text-center shadow-sm shine-card cursor-default"
+                    >
                         <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-2">{s.label}</p>
-                        <p className={`text-2xl font-extrabold ${s.color.split(' ')[0]}`}>{s.count}</p>
-                    </div>
+                        <motion.p className={`text-2xl font-extrabold ${s.color.split(' ')[0]}`}
+                            initial={{ scale: 0 }} animate={{ scale: 1 }}
+                            transition={{ delay: i * 0.1 + 0.4, type: 'spring', stiffness: 300 }}
+                        >{s.count}</motion.p>
+                    </motion.div>
                 ))}
             </div>
 
@@ -134,10 +159,21 @@ const History = () => {
                             const Icon = ENTITY_ICONS[log.type] || HistoryIcon;
                             const colorClass = ENTITY_COLORS[log.type] || 'text-text-secondary bg-background';
                             return (
-                                <div key={log.id} className="flex items-start gap-4 px-6 py-4 hover:bg-background/50 transition-colors">
-                                    <div className={`h-10 w-10 min-w-[40px] rounded-xl ${colorClass} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                                <motion.div key={log.id}
+                                    custom={i}
+                                    variants={itemVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }}
+                                    className="flex items-start gap-4 px-6 py-4 transition-colors"
+                                >
+                                    <motion.div
+                                        whileHover={{ rotate: 15, scale: 1.15 }}
+                                        transition={{ type: 'spring', stiffness: 300 }}
+                                        className={`h-10 w-10 min-w-[40px] rounded-xl ${colorClass} flex items-center justify-center flex-shrink-0 mt-0.5`}
+                                    >
                                         <Icon size={18} />
-                                    </div>
+                                    </motion.div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <span className="text-sm font-black text-text-primary">{log.action}</span>
@@ -149,7 +185,7 @@ const History = () => {
                                         <p className="text-xs font-bold text-text-secondary">{formatSafeDate(log.date)}</p>
                                         <p className="text-[10px] text-text-secondary/60 mt-0.5 uppercase font-black tracking-widest">{log.type}</p>
                                     </div>
-                                </div>
+                                </motion.div>
                             );
                         })}
                     </div>

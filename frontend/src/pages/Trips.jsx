@@ -4,6 +4,20 @@ import { Navigation, Loader2, X, Check, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatSafeDate } from '../utils/dateUtils';
 import { useAuth } from '../features/auth/AuthContext';
+import { motion } from 'framer-motion';
+
+const STATUS_BG = {
+    DRAFT: 'bg-yellow-400/10 border-yellow-400/20 text-yellow-400',
+    DISPATCHED: 'bg-primary/10 border-primary/20 text-primary',
+    COMPLETED: 'bg-success/10 border-success/20 text-success',
+    CANCELLED: 'bg-danger/10 border-danger/20 text-danger',
+};
+
+const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.04, type: 'spring', stiffness: 260, damping: 25 } }),
+};
+
 
 const STATUS_COLOR = {
     DRAFT: 'text-yellow-400',
@@ -19,24 +33,29 @@ const STATUS_LABEL = {
     CANCELLED: 'Cancelled',
 };
 
-// Memoized Trip Row Component
-const TripRow = React.memo(({ trip, canDispatch, onDispatch, onComplete, onCancel }) => (
-    <tr className="hover:bg-background/50 transition-colors group">
+// Memoized Animated Trip Row
+const TripRow = React.memo(({ trip, canDispatch, onDispatch, onComplete, onCancel, index }) => (
+    <motion.tr
+        custom={index}
+        variants={rowVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }}
+        className="transition-colors group"
+    >
         <td className="px-6 py-4 font-black text-text-primary">#{trip.id}</td>
-        <td className="px-6 py-4 text-sm font-bold text-text-secondary">
-            {trip.vehicle_type || 'Fleet'}
-        </td>
-        <td className="px-6 py-4">
-            <span className="font-bold text-text-primary text-sm">{trip.vehicle_name || 'N/A'}</span>
-        </td>
-        <td className="px-6 py-4">
-            <span className="text-sm font-medium text-text-secondary">{trip.driver_name || 'N/A'}</span>
-        </td>
+        <td className="px-6 py-4 text-sm font-bold text-text-secondary">{trip.vehicle_type || 'Fleet'}</td>
+        <td className="px-6 py-4"><span className="font-bold text-text-primary text-sm">{trip.vehicle_name || 'N/A'}</span></td>
+        <td className="px-6 py-4"><span className="text-sm font-medium text-text-secondary">{trip.driver_name || 'N/A'}</span></td>
         <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.origin}</td>
         <td className="px-6 py-4 text-sm font-medium text-text-secondary">{trip.destination}</td>
         <td className="px-6 py-4 text-xs font-bold text-text-secondary">{formatSafeDate(trip.created_at)}</td>
         <td className="px-6 py-4">
-            <span className={`text-xs font-black uppercase ${STATUS_COLOR[trip.status] || 'text-text-secondary'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${STATUS_BG[trip.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
+                </span>
                 {STATUS_LABEL[trip.status] || trip.status}
             </span>
         </td>
@@ -44,25 +63,29 @@ const TripRow = React.memo(({ trip, canDispatch, onDispatch, onComplete, onCance
             <td className="px-6 py-4">
                 <div className="flex items-center justify-end gap-2 text-right">
                     {trip.status === 'DRAFT' && (
-                        <button onClick={() => onDispatch(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all outline-none">
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                            onClick={() => onDispatch(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all outline-none">
                             Dispatch
-                        </button>
+                        </motion.button>
                     )}
                     {trip.status === 'DISPATCHED' && (
-                        <button onClick={() => onComplete(trip)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all outline-none">
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                            onClick={() => onComplete(trip)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all outline-none">
                             Complete
-                        </button>
+                        </motion.button>
                     )}
                     {(trip.status === 'DRAFT' || trip.status === 'DISPATCHED') && (
-                        <button onClick={() => onCancel(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all outline-none">
+                        <motion.button whileHover={{ scale: 1.05, color: '#ef4444' }} whileTap={{ scale: 0.95 }}
+                            onClick={() => onCancel(trip.id)} className="text-xs font-black uppercase px-3 py-1 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all outline-none">
                             Cancel
-                        </button>
+                        </motion.button>
                     )}
                 </div>
             </td>
         )}
-    </tr>
+    </motion.tr>
 ));
+
 
 const Trips = () => {
     const { user } = useAuth();
@@ -193,36 +216,51 @@ const Trips = () => {
     }, [fetchResources]);
 
     return (
-        <div className="space-y-6 text-text-primary animate-fade-in">
+        <div className="space-y-6 text-text-primary">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
                 <div>
-                    <h2 className="text-2xl font-bold">Trip Dispatcher & Management</h2>
+                    <div className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 6, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}>
+                            <Navigation size={22} className="text-primary" />
+                        </motion.div>
+                        <h2 className="text-2xl font-bold gradient-text">Trip Dispatcher &amp; Management</h2>
+                    </div>
                     <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Live deployment tracking</p>
                 </div>
                 <div className="flex gap-2">
                     {canDispatch && (
-                        <button
+                        <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
                             onClick={handleShowNewTrip}
                             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none"
                         >
                             <Navigation size={16} /> New Trip
-                        </button>
+                        </motion.button>
                     )}
                 </div>
-            </div>
+            </motion.div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'Active Fleet', value: stats.activeFleet, color: 'text-primary' },
-                    { label: 'Pending Cargo', value: stats.pendingCargo, color: 'text-yellow-400' },
-                    { label: 'Completed', value: stats.completed, color: 'text-success' },
-                ].map(kpi => (
-                    <div key={kpi.label} className="bg-card rounded-2xl border border-border p-5 text-center shadow-sm">
+                    { label: 'Active Fleet', value: stats.activeFleet, color: 'text-primary', glow: 'hover:glow-primary' },
+                    { label: 'Pending Cargo', value: stats.pendingCargo, color: 'text-yellow-400', glow: '' },
+                    { label: 'Completed', value: stats.completed, color: 'text-success', glow: 'hover:glow-success' },
+                ].map((kpi, i) => (
+                    <motion.div key={kpi.label}
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 + 0.2, type: 'spring', stiffness: 260, damping: 24 }}
+                        whileHover={{ y: -4, scale: 1.02 }}
+                        className={`bg-card rounded-2xl border border-border p-5 text-center shadow-sm shine-card cursor-default transition-shadow ${kpi.glow}`}
+                    >
                         <p className="text-xs font-bold uppercase tracking-widest text-text-secondary mb-2">{kpi.label}</p>
-                        <p className={`text-3xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
-                    </div>
+                        <motion.p className={`text-3xl font-extrabold ${kpi.color}`}
+                            initial={{ scale: 0 }} animate={{ scale: 1 }}
+                            transition={{ delay: i * 0.1 + 0.4, type: 'spring', stiffness: 300 }}
+                        >{kpi.value}</motion.p>
+                    </motion.div>
                 ))}
             </div>
 
@@ -273,9 +311,10 @@ const Trips = () => {
                                         <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No trips found</p>
                                     </td>
                                 </tr>
-                            ) : filteredTrips.map(trip => (
+                            ) : filteredTrips.map((trip, i) => (
                                 <TripRow
                                     key={trip.id}
+                                    index={i}
                                     trip={trip}
                                     canDispatch={canDispatch}
                                     onDispatch={handleDispatch}

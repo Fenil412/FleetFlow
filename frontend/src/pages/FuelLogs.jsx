@@ -4,13 +4,27 @@ import { Fuel, Calendar, IndianRupee, Droplets, Plus, Edit2, Trash2, X, Check } 
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
+import { motion } from 'framer-motion';
 
-// Memoized Row Component
-const FuelLogRow = React.memo(({ log, canManage, onEdit, onDelete }) => (
-    <tr className="hover:bg-background/50 transition-colors">
+const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.04, type: 'spring', stiffness: 260, damping: 25 } }),
+};
+
+
+// Memoized Animated Row Component
+const FuelLogRow = React.memo(({ log, canManage, onEdit, onDelete, index }) => (
+    <motion.tr
+        custom={index}
+        variants={rowVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }}
+        className="transition-colors"
+    >
         <td className="px-6 py-4">
             <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Fuel size={14} /></div>
+                <motion.div whileHover={{ scale: 1.2, rotate: 10 }} className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><Fuel size={14} /></motion.div>
                 <span className="text-sm font-bold text-text-primary">{log.vehicle_name}</span>
             </div>
         </td>
@@ -21,13 +35,14 @@ const FuelLogRow = React.memo(({ log, canManage, onEdit, onDelete }) => (
         {canManage && (
             <td className="px-6 py-4">
                 <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => onEdit(log)} className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={14} /></button>
-                    <button onClick={() => onDelete(log.id)} className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={14} /></button>
+                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => onEdit(log)} className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={14} /></motion.button>
+                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => onDelete(log.id)} className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={14} /></motion.button>
                 </div>
             </td>
         )}
-    </tr>
+    </motion.tr>
 ));
+
 
 const FuelLogs = () => {
     const { user } = useAuth();
@@ -123,34 +138,54 @@ const FuelLogs = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="flex items-center justify-between"
+            >
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary">Fuel Expenditures</h2>
+                    <div className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}>
+                            <Fuel size={22} className="text-primary" />
+                        </motion.div>
+                        <h2 className="text-2xl font-bold gradient-text">Fuel Expenditures</h2>
+                    </div>
                     <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Energy consumption and cost management</p>
                 </div>
                 {canManage && (
-                    <button onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none">
+                    <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
+                        onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none">
                         <Plus size={18} /> Add Fuel Entry
-                    </button>
+                    </motion.button>
                 )}
-            </div>
+            </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* KPI Summary */}
                 <div className="lg:col-span-1 space-y-4">
-                    <div className="bg-card rounded-3xl p-6 text-text-primary shadow-sm border border-border relative overflow-hidden group">
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
+                        whileHover={{ y: -4 }}
+                        className="bg-card rounded-3xl p-6 text-text-primary shadow-sm border border-border relative overflow-hidden group shine-card"
+                    >
                         <div className="relative z-10">
                             <p className="text-xs font-bold text-text-secondary uppercase tracking-[0.2em] mb-4">Total Fuel Cost</p>
                             <h4 className="text-3xl font-extrabold mb-2">₹{totalCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h4>
                             <p className="text-xs font-bold text-text-secondary">{logs.length} transaction{logs.length !== 1 ? 's' : ''} recorded</p>
                         </div>
-                        <Droplets className="absolute -right-8 -bottom-8 text-primary/10 group-hover:scale-110 transition-transform duration-700" size={160} />
-                    </div>
-                    <div className="bg-card rounded-3xl p-6 border border-border shadow-sm">
+                        <motion.div
+                            animate={{ rotate: [0, 360] }}
+                            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                            className="absolute -right-8 -bottom-8 text-primary/10"
+                        >
+                            <Droplets size={160} />
+                        </motion.div>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}
+                        whileHover={{ y: -4 }}
+                        className="bg-card rounded-3xl p-6 border border-border shadow-sm shine-card"
+                    >
                         <p className="text-xs font-bold text-text-secondary uppercase tracking-[0.2em] mb-4">Total Volume</p>
                         <h4 className="text-3xl font-extrabold text-text-primary mb-1">{totalLiters.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</h4>
                         <p className="text-xs text-text-secondary font-medium">across all vehicles</p>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* History Table */}
@@ -179,9 +214,10 @@ const FuelLogs = () => {
                                             <Fuel className="mx-auto mb-3 text-text-secondary/30" size={40} />
                                             <p className="text-sm font-bold text-text-secondary uppercase tracking-widest">No fuel logs yet</p>
                                         </td></tr>
-                                    ) : logs.map(log => (
+                                    ) : logs.map((log, i) => (
                                         <FuelLogRow
                                             key={log.id}
+                                            index={i}
                                             log={log}
                                             canManage={canManage}
                                             onEdit={openEdit}

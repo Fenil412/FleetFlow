@@ -136,16 +136,23 @@ export const getDailyProfit = async () => {
 };
 
 export const getBookingGeography = async () => {
-  const result = await query(`
+  try {
+    const result = await query(`
         SELECT 
-            origin as city,
-            COUNT(*) as booking_count,
-            SUM(revenue) as total_revenue
+            TRIM(SPLIT_PART(origin, ',', -1)) AS city,
+            COUNT(*) AS booking_count,
+            COALESCE(SUM(revenue), 0) AS total_revenue
         FROM trips
         WHERE status != 'CANCELLED'
-        GROUP BY origin
+          AND origin IS NOT NULL
+          AND origin != ''
+        GROUP BY TRIM(SPLIT_PART(origin, ',', -1))
         ORDER BY booking_count DESC
-        LIMIT 10
+        LIMIT 20
     `);
-  return result.rows;
+    return result.rows;
+  } catch (err) {
+    console.error('[getBookingGeography] query failed:', err.message);
+    return [];
+  }
 };

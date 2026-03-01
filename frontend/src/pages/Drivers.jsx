@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { User, Shield, Clock, Star, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
+import { User, Shield, Clock, Star, Plus, Edit2, Trash2, X, Check, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
+import { motion } from 'framer-motion';
+
+const cardVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    visible: (i) => ({ opacity: 1, y: 0, scale: 1, transition: { delay: i * 0.08, type: 'spring', stiffness: 260, damping: 24 } }),
+};
+
 
 const Drivers = () => {
     const { user } = useAuth();
@@ -93,17 +100,25 @@ const Drivers = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary">Personnel Registry</h2>
+                    <div className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}>
+                            <Users size={22} className="text-primary" />
+                        </motion.div>
+                        <h2 className="text-2xl font-bold gradient-text">Personnel Registry</h2>
+                    </div>
                     <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Driver licenses and duty status management</p>
                 </div>
                 {canManage && (
-                    <button onClick={openCreate} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-blue-700 transition-all outline-none">
+                    <motion.button whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.96 }}
+                        onClick={openCreate} className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-blue-700 transition-all outline-none">
                         <Plus size={20} /> Add Personnel
-                    </button>
+                    </motion.button>
                 )}
-            </div>
+            </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-4 rounded-3xl border border-border shadow-sm">
                 <div className="md:col-span-2 relative">
@@ -119,33 +134,51 @@ const Drivers = () => {
                     [1, 2, 3].map(i => <div key={i} className="h-56 bg-card border border-border rounded-3xl animate-pulse" />)
                 ) : filteredDrivers.length === 0 ? (
                     <div className="md:col-span-2 lg:col-span-3 py-20 text-center font-bold text-text-secondary uppercase tracking-[0.2em]">No personnel found</div>
-                ) : filteredDrivers.map(driver => (
-                    <div key={driver.id} className="bg-card rounded-3xl p-6 shadow-sm border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                ) : filteredDrivers.map((driver, i) => (
+                    <motion.div
+                        key={driver.id}
+                        custom={i}
+                        variants={cardVariants}
+                        initial="hidden"
+                        animate="visible"
+                        whileHover={{ y: -6, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}
+                        className="bg-card rounded-3xl p-6 border border-border shine-card cursor-default animated-border"
+                    >
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center">
-                                <div className="h-14 w-14 rounded-2xl bg-background flex items-center justify-center text-text-primary shadow-inner border border-border">
+                                <motion.div
+                                    whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="h-14 w-14 rounded-2xl bg-background flex items-center justify-center text-text-primary shadow-inner border border-border"
+                                >
                                     <User size={28} />
-                                </div>
+                                </motion.div>
                                 <div className="ml-4">
                                     <h4 className="font-bold text-text-primary text-lg leading-none">{driver.name}</h4>
-                                    <div className={`mt-2 inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase border ${statusColor(driver.status)}`}>
+                                    <div className={`mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase border ${statusColor(driver.status)}`}>
+                                        <span className="relative flex h-1.5 w-1.5">
+                                            <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-75 animate-ping" />
+                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
+                                        </span>
                                         {driver.status.replace('_', ' ')}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center text-warning font-bold">
-                                <Star size={14} className="fill-warning mr-1" />
+                            <motion.div whileHover={{ scale: 1.2 }} className="flex items-center text-warning font-bold">
+                                <motion.div animate={{ rotate: [0, 20, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>
+                                    <Star size={14} className="fill-warning mr-1" />
+                                </motion.div>
                                 <span>{Number(driver.safety_score || 5).toFixed(1)}</span>
-                            </div>
+                            </motion.div>
                         </div>
 
                         <div className="space-y-3 py-4 border-y border-border">
                             <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center text-text-secondary font-medium"><Shield size={16} className="mr-2" /> License</div>
+                                <div className="flex items-center text-text-secondary font-medium"><Shield size={16} className="mr-2" />License</div>
                                 <span className="font-bold text-text-primary">{driver.license_number}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center text-text-secondary font-medium"><Clock size={16} className="mr-2" /> Expiry</div>
+                                <div className="flex items-center text-text-secondary font-medium"><Clock size={16} className="mr-2" />Expiry</div>
                                 <span className={`font-bold ${new Date(driver.license_expiry) < new Date() ? 'text-danger' : 'text-text-primary'}`}>
                                     {formatSafeDate(driver.license_expiry)}
                                 </span>
@@ -155,16 +188,18 @@ const Drivers = () => {
                         <div className="mt-4 flex gap-2">
                             {canManage && (
                                 <>
-                                    <button onClick={() => openEdit(driver)} className="flex-1 py-2 text-xs font-bold text-primary bg-primary/5 rounded-xl hover:bg-primary/10 transition-colors uppercase tracking-wider outline-none flex items-center justify-center gap-1">
+                                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                        onClick={() => openEdit(driver)} className="flex-1 py-2 text-xs font-bold text-primary bg-primary/5 rounded-xl hover:bg-primary/10 transition-colors uppercase tracking-wider outline-none flex items-center justify-center gap-1">
                                         <Edit2 size={12} /> Edit
-                                    </button>
-                                    <button onClick={() => handleDelete(driver.id, driver.name)} className="px-3 py-2 text-xs font-bold text-danger hover:bg-danger/10 rounded-xl transition-colors outline-none">
+                                    </motion.button>
+                                    <motion.button whileHover={{ scale: 1.1, color: '#ef4444' }} whileTap={{ scale: 0.9 }}
+                                        onClick={() => handleDelete(driver.id, driver.name)} className="px-3 py-2 text-xs font-bold text-danger hover:bg-danger/10 rounded-xl transition-colors outline-none">
                                         <Trash2 size={14} />
-                                    </button>
+                                    </motion.button>
                                 </>
                             )}
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
 
