@@ -15,6 +15,7 @@ const FuelLogs = lazy(() => import('./pages/FuelLogs'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const History = lazy(() => import('./pages/History'));
 const About = lazy(() => import('./pages/About'));
+const AIHub = lazy(() => import('./pages/AIHub'));
 
 const SignUp = lazy(() => import('./pages/SignUp'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -77,6 +78,7 @@ function App() {
 
                                     <Route path="/history" element={<History />} />
                                     <Route path="/about" element={<About />} />
+                                    <Route path="/ai" element={<AIHub />} />
                                     <Route path="/profile" element={<Profile />} />
 
                                     <Route path="*" element={<Navigate to="/" replace />} />

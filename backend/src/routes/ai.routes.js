@@ -33,15 +33,20 @@ function proxyToAI(aiPath) {
         const body = JSON.stringify(req.body);
         const method = req.method;
 
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        if (method !== 'GET' && body) {
+            headers['Content-Length'] = Buffer.byteLength(body);
+        }
+
         const options = {
             hostname: AI_HOST,
             port: AI_PORT,
             path: aiPath,
             method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body),
-            },
+            headers,
         };
 
         const proxyReq = http.request(options, (proxyRes) => {

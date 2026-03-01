@@ -27,7 +27,11 @@ FleetFlow is a **full-stack enterprise fleet management + AI system** built with
 | ⚡ **Real-time** | Socket.io for live fleet-wide status updates |
 | 🌙 **Dark Theme** | Full dark-mode with light-mode toggle across all pages |
 
+| 🧠 **AI Intelligence Hub** | Centralized Master-Detail UI with adjustable JSON payloads to run real-time inference against 7 models. |
+
 ### 🧠 AI Services (Python FastAPI — port 8001)
+*Fully integrated into the frontend via the interactive **AI Intelligence Hub** with editable telemetry forms and dynamic result parsing.*
+
 | Service | Type | Dataset Used |
 |---------|------|-------------|
 | 🔧 **Predictive Maintenance** | RandomForest Classifier | logistics_dataset (92k rows) |
@@ -35,7 +39,7 @@ FleetFlow is a **full-stack enterprise fleet management + AI system** built with
 | 🚨 **Fuel Anomaly Detection** | IsolationForest | CO2 Emissions Canada |
 | ⏱️ **Delivery Delay Prediction** | RandomForest Regressor | logistics_dataset |
 | 🌿 **Vehicle Eco Score** | GradientBoosting Regressor | EPA Vehicle Database |
-| 👨‍✈️ **Driver Behaviour Score** | Rule-based (formula) | Live telemetry events |
+| 👨‍✈️ **Driver Behaviour Score** | Deep Logic Engine | Live telemetry events |
 | 💨 **Carbon Emission Tracking** | Formula-based | Diesel/Petrol emission factors |
 | 🛣️ **Route Time Estimation** | Physics-based model | Traffic + weather + load |
 
@@ -47,11 +51,19 @@ FleetFlow is a **full-stack enterprise fleet management + AI system** built with
 FleetFlow/
 │
 ├── frontend/                        # React 18 + Vite
-│   └── src/
-│       ├── pages/                   # Dashboard, Vehicles, Drivers, Trips, Fuel, Maintenance...
-│       ├── components/              # Reusable UI components (animated with Framer Motion)
-│       └── ...
-│
+│   ├── public/                      # Static assets
+│   ├── src/
+│   │   ├── api/                     # Axios API clients (auth, vehicles, ai, etc.)
+│   │   ├── assets/                  # CSS, Images, Icons
+│   │   ├── components/              # Reusable UI components (animated with Framer Motion)
+│   │   │   ├── layout/              # Sidebar, Topbar, DashboardLayout
+│   │   │   └── ui/                  # Cards, Modals, Buttons
+│   │   ├── context/                 # AuthContext & state management
+│   │   ├── pages/                   # AIHub, Dashboard, Vehicles, Drivers, Trips, Fuel...
+│   │   ├── App.jsx                  # Main routing (react-router-dom)
+│   │   └── main.jsx                 # React DOM entry point
+│   ├── .env                         # Frontend env variables (VITE_API_URL)
+│   └── package.json
 ├── backend/                         # Node.js + Express (port 3000)
 │   └── src/
 │       ├── app.js                   # Express app + /api/ai proxy routes
@@ -161,6 +173,9 @@ cd ai-service
 
 # Install Python dependencies
 py -m pip install -r requirements.txt
+
+# Environment Setup
+cp .env.sample .env
 
 # Train all ML models (takes 2–5 min, one-time only)
 py train_all.py

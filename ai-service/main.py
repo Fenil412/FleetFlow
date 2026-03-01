@@ -25,6 +25,11 @@ import math
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+from contextlib import asynccontextmanager
+from typing import Optional
 
 import joblib
 import numpy as np

@@ -2,7 +2,7 @@ import React from 'react';
 import {
     LayoutDashboard, Truck, Users, Navigation, Wrench,
     Fuel, BarChart3, ChevronLeft, ChevronRight, LogOut,
-    X, History, Info, UserCircle2, Zap,
+    X, History, Info, UserCircle2, Zap, BrainCircuit
 } from 'lucide-react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +25,7 @@ const Sidebar = ({ isOpen, toggleSidebar, isMobile, closeMobile }) => {
 
     const menuItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
+        { name: 'AI Intelligence', icon: BrainCircuit, path: '/ai', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
         { name: 'Vehicles', icon: Truck, path: '/vehicles', roles: ['FLEET_MANAGER', 'DISPATCHER'] },
         { name: 'Drivers', icon: Users, path: '/drivers', roles: ['FLEET_MANAGER', 'DISPATCHER', 'SAFETY_OFFICER'] },
         { name: 'Trips', icon: Navigation, path: '/trips', roles: ['FLEET_MANAGER', 'DISPATCHER'] },
