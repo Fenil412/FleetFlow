@@ -18,11 +18,11 @@
 
 import express from 'express';
 import http from 'http';
+import https from 'https';
 
 const router = express.Router();
 
-const AI_HOST = process.env.AI_SERVICE_HOST || 'localhost';
-const AI_PORT = process.env.AI_SERVICE_PORT || 8001;
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || `http://${process.env.AI_SERVICE_HOST || 'localhost'}:${process.env.AI_SERVICE_PORT || 8001}`;
 
 /**
  * Generic proxy function — forwards request body to FastAPI and
@@ -41,15 +41,24 @@ function proxyToAI(aiPath) {
             headers['Content-Length'] = Buffer.byteLength(body);
         }
 
+        let aiUrl;
+        try {
+            aiUrl = new URL(aiPath, AI_SERVICE_URL);
+        } catch (e) {
+            return res.status(500).json({ error: 'Invalid AI_SERVICE_URL configuration', details: e.message });
+        }
+
         const options = {
-            hostname: AI_HOST,
-            port: AI_PORT,
-            path: aiPath,
+            hostname: aiUrl.hostname,
+            port: aiUrl.port || (aiUrl.protocol === 'https:' ? 443 : 80),
+            path: aiUrl.pathname + aiUrl.search,
             method,
             headers,
         };
 
-        const proxyReq = http.request(options, (proxyRes) => {
+        const client = aiUrl.protocol === 'https:' ? https : http;
+
+        const proxyReq = client.request(options, (proxyRes) => {
             let data = '';
             proxyRes.on('data', (chunk) => (data += chunk));
             proxyRes.on('end', () => {
@@ -68,7 +77,7 @@ function proxyToAI(aiPath) {
         proxyReq.on('error', (err) => {
             console.error('[AI Proxy] Connection error:', err.message);
             res.status(503).json({
-                error: 'AI service unavailable. Make sure the Python FastAPI server is running on port 8001.',
+                error: `AI service unavailable at ${AI_SERVICE_URL}. Ensure it is running.`,
                 details: err.message,
             });
         });

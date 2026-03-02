@@ -22,7 +22,10 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+};
+app.use(cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json());
 
