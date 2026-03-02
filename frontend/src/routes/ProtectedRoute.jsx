@@ -9,7 +9,7 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
     useEffect(() => {
         if (!loading) {
             if (!user) {
-                navigate('/login');
+                navigate('/landing');
             } else if (allowedRoles && !allowedRoles.includes(user.role_name || user.role)) {
                 navigate('/');
             }

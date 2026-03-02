@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../api/axios';
-import { Fuel, Calendar, IndianRupee, Droplets, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Fuel, Droplets, Plus, Edit2, Trash2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
 import { motion } from 'framer-motion';
+import PageHeader from '../components/ui/PageHeader';
+import ModalWrapper from '../components/ui/ModalWrapper';
+import FormField from '../components/ui/FormField';
 
 const rowVariants = {
     hidden: { opacity: 0, x: -20 },
@@ -136,27 +139,18 @@ const FuelLogs = () => {
 
     const canManage = useMemo(() => ['FLEET_MANAGER', 'FINANCIAL_ANALYST'].includes(user?.role_name), [user?.role_name]);
 
+    const fc = (key) => (e) => setFormData(p => ({ ...p, [key]: e.target.value }));
+
     return (
-        <div className="space-y-6">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-                className="flex items-center justify-between"
-            >
-                <div>
-                    <div className="flex items-center gap-2">
-                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}>
-                            <Fuel size={22} className="text-primary" />
-                        </motion.div>
-                        <h2 className="text-2xl font-bold gradient-text">Fuel Expenditures</h2>
-                    </div>
-                    <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Energy consumption and cost management</p>
-                </div>
+        <div className="page-container">
+            <PageHeader icon={Fuel} title="Fuel Expenditures" subtitle="Energy consumption and cost management" iconSpin>
                 {canManage && (
-                    <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
-                        onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none">
-                        <Plus size={18} /> Add Fuel Entry
+                    <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
+                        onClick={openCreate} className="btn-primary">
+                        <Plus size={16} /> Add Fuel Entry
                     </motion.button>
                 )}
-            </motion.div>
+            </PageHeader>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* KPI Summary */}
@@ -231,64 +225,33 @@ const FuelLogs = () => {
                 </div>
             </div>
 
-            {/* Create / Edit Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
-                        <div className="p-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-text-primary">{editingLog ? 'Edit Fuel Entry' : 'Log Fuel Entry'}</h3>
-                                    <p className="text-sm text-text-secondary mt-1">Record fuel transaction details</p>
-                                </div>
-                                <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-background text-text-secondary transition-colors outline-none"><X size={20} /></button>
-                            </div>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {!editingLog && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Vehicle</label>
-                                        <select required value={formData.vehicle_id} onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none">
-                                            <option value="">Select vehicle...</option>
-                                            {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.license_plate})</option>)}
-                                        </select>
-                                    </div>
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Liters</label>
-                                        <input required type="number" min="0.01" step="0.01" value={formData.liters} onChange={e => setFormData({ ...formData, liters: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">{editingLog ? 'Total Cost (₹)' : 'Price/Liter (₹)'}</label>
-                                        <input required type="number" min="0.01" step="0.01" value={formData.price_per_liter} onChange={e => setFormData({ ...formData, price_per_liter: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Fuel Date</label>
-                                        <input required type="date" value={formData.fuel_date} onChange={e => setFormData({ ...formData, fuel_date: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Odometer (km)</label>
-                                        <input type="number" min="0" value={formData.odometer_km} onChange={e => setFormData({ ...formData, odometer_km: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
-                                    </div>
-                                </div>
-                                {!editingLog && formData.liters > 0 && formData.price_per_liter > 0 && (
-                                    <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
-                                        <p className="text-xs text-text-secondary font-bold">Total Cost: <span className="text-primary font-black">₹{(formData.liters * formData.price_per_liter).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
-                                    </div>
-                                )}
-                                <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-text-secondary hover:bg-background transition-colors outline-none">Cancel</button>
-                                    <button type="submit" className="flex-1 py-3 rounded-xl bg-primary text-sm font-bold text-white hover:bg-blue-700 transition-colors outline-none flex items-center justify-center gap-2">
-                                        <Check size={16} /> {editingLog ? 'Save Changes' : 'Log Fuel'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+            <ModalWrapper isOpen={showModal} onClose={() => setShowModal(false)}
+                title={editingLog ? 'Edit Fuel Entry' : 'Log Fuel Entry'}
+                subtitle="Record fuel transaction details">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {!editingLog && (
+                        <FormField label="Vehicle" name="vehicle_id" type="select" value={formData.vehicle_id} onChange={fc('vehicle_id')} required>
+                            <option value="">Select vehicle...</option>
+                            {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.license_plate})</option>)}
+                        </FormField>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Liters" name="liters" type="number" min="0.01" step="0.01" value={formData.liters} onChange={fc('liters')} required />
+                        <FormField label={editingLog ? 'Total Cost (₹)' : 'Price/Liter (₹)'} name="price_per_liter" type="number" min="0.01" step="0.01" value={formData.price_per_liter} onChange={fc('price_per_liter')} required />
+                        <FormField label="Fuel Date" name="fuel_date" type="date" value={formData.fuel_date} onChange={fc('fuel_date')} required />
+                        <FormField label="Odometer (km)" name="odometer_km" type="number" min="0" value={formData.odometer_km} onChange={fc('odometer_km')} />
                     </div>
-                </div>
-            )}
+                    {!editingLog && formData.liters > 0 && formData.price_per_liter > 0 && (
+                        <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
+                            <p className="text-sm text-text-secondary font-bold">Total Cost: <span className="text-primary font-black">₹{(formData.liters * formData.price_per_liter).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                        </div>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
+                        <button type="submit" className="btn-primary flex-1"><Check size={15} /> {editingLog ? 'Save Changes' : 'Log Fuel'}</button>
+                    </div>
+                </form>
+            </ModalWrapper>
         </div>
     );
 };

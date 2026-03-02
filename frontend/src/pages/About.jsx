@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Users, Navigation, Wrench, Fuel, BarChart3, BookOpen, Clock } from 'lucide-react';
+import { Truck, Users, Navigation, Wrench, Fuel, BarChart3, BookOpen, Clock, Brain } from 'lucide-react';
 
 const modules = [
     {
@@ -62,6 +62,16 @@ const modules = [
             'Monthly Payroll & Health Audit PDF downloads',
         ]
     },
+    {
+        icon: Brain, color: 'text-indigo-500', bg: 'bg-indigo-500/10',
+        title: 'AI Insights & Predictions',
+        desc: 'Advanced machine learning models powered by FastAPI to process fleet telemetry. Predicts vehicle breakdowns, estimates delivery delays, and scores driver safety.',
+        bullets: [
+            'Predictive maintenance to prevent breakdowns',
+            'Real-time delivery delay estimations',
+            'Driver safety and eco-score analysis',
+        ]
+    }
 ];
 
 const workflow = [
@@ -71,6 +81,7 @@ const workflow = [
     { step: 4, label: 'Completion', desc: 'Driver marks trip "Done," enters final odometer. Vehicle & Driver → Available.' },
     { step: 5, label: 'Maintenance', desc: 'Manager logs "Oil Change." Auto-Logic: Status → In Shop. Vehicle hidden from Dispatcher.' },
     { step: 6, label: 'Analytics', desc: 'System updates "Cost-per-km" based on fuel logs from the last trip. Monthly report downloadable.' },
+    { step: 7, label: 'AI Prediction', desc: 'AI analyzes engine temp and vibration to flag risk of breakdown before the next trip.' },
 ];
 
 const About = () => {
@@ -99,6 +110,8 @@ const About = () => {
                         <span>Node.js + Express</span>
                         <span>·</span>
                         <span>PostgreSQL</span>
+                        <span>·</span>
+                        <span>Python + FastAPI</span>
                         <span>·</span>
                         <span>WebSockets</span>
                         <span>·</span>

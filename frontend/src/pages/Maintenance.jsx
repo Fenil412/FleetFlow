@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Wrench, Calendar, Truck, AlertCircle, Plus, Edit2, Trash2, X, Check, Search } from 'lucide-react';
+import { Wrench, Truck, Plus, Edit2, Trash2, Check, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../features/auth/AuthContext';
 import { formatSafeDate } from '../utils/dateUtils';
 import { motion } from 'framer-motion';
+import PageHeader from '../components/ui/PageHeader';
+import DataTable, { rowVariants } from '../components/ui/DataTable';
+import ModalWrapper from '../components/ui/ModalWrapper';
+import FormField from '../components/ui/FormField';
 
-const rowVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: (i) => ({
-        opacity: 1, x: 0,
-        transition: { delay: i * 0.05, type: 'spring', stiffness: 260, damping: 25 },
-    }),
-};
+
 
 
 const SERVICE_TYPES = ['Routine', 'Oil Change', 'Tire Replacement', 'Brake Service', 'Engine Repair', 'Electrical', 'Inspection', 'Other'];
@@ -105,148 +103,80 @@ const Maintenance = () => {
 
     const isManager = user?.role_name === 'FLEET_MANAGER';
 
+    const fc = (key) => (e) => setFormData(p => ({ ...p, [key]: e.target.value }));
+    const tableColumns = ['Vehicle', 'Service Type', 'Description', 'Date', 'Cost (₹)', ...(isManager ? [{ label: 'Actions', className: 'text-right' }] : [])];
+
     return (
-        <div className="space-y-6 text-text-primary">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-                className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-                <div>
-                    <div className="flex items-center gap-2">
-                        <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>
-                            <Wrench size={22} className="text-primary" />
-                        </motion.div>
-                        <h2 className="text-2xl font-bold gradient-text">Service &amp; Maintenance</h2>
-                    </div>
-                    <p className="text-sm text-text-secondary font-medium mt-1 uppercase tracking-tighter">Asset health and repair history</p>
-                </div>
+        <div className="page-container">
+            <PageHeader icon={Wrench} title="Service & Maintenance" subtitle="Asset health and repair history">
                 {isManager && (
-                    <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.96 }}
-                        onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all outline-none">
-                        <Plus size={18} /> Log Service
+                    <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
+                        onClick={openCreate} className="btn-primary">
+                        <Plus size={16} /> Log Service
                     </motion.button>
                 )}
+            </PageHeader>
+
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
+                <input type="text" placeholder="Search by vehicle or service type..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field pl-9" />
             </motion.div>
 
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
-                <input type="text" placeholder="Search by vehicle or service type..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-card rounded-2xl border border-border focus:ring-2 focus:ring-primary outline-none text-text-primary placeholder:text-text-secondary/50 transition-all" />
-            </div>
-
-            <div className="bg-card rounded-3xl shadow-sm border border-border overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-background/50 border-b border-border text-xs font-bold text-text-secondary uppercase tracking-widest">
-                                <th className="px-6 py-4">Vehicle</th>
-                                <th className="px-6 py-4">Service Type</th>
-                                <th className="px-6 py-4">Description</th>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Cost</th>
-                                {isManager && <th className="px-6 py-4 text-right">Actions</th>}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {loading ? (
-                                [1, 2, 3].map(i => <tr key={i} className="animate-pulse"><td colSpan="6" className="h-16 bg-background/20" /></tr>)
-                            ) : filteredLogs.length === 0 ? (
-                                <tr><td colSpan="6" className="px-6 py-20 text-center font-bold text-text-secondary uppercase tracking-widest">No maintenance records found</td></tr>
-                            ) : filteredLogs.map((log, i) => (
-                                <motion.tr
-                                    key={log.id}
-                                    custom={i}
-                                    variants={rowVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }}
-                                    className="transition-colors"
-                                >
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <motion.div whileHover={{ rotate: 15, scale: 1.1 }} className="h-9 w-9 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
-                                                <Truck size={16} />
-                                            </motion.div>
-                                            <span className="font-bold text-text-primary">{log.vehicle_name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-primary/10 text-primary text-xs font-black uppercase">
-                                            <motion.div animate={{ rotate: [0, 20, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}>
-                                                <Wrench size={11} />
-                                            </motion.div>
-                                            {log.service_type}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-5 text-sm text-text-secondary font-medium max-w-[200px] truncate">{log.description || '---'}</td>
-                                    <td className="px-6 py-5 text-sm text-text-secondary font-medium">{formatSafeDate(log.service_date)}</td>
-                                    <td className="px-6 py-5 font-bold text-text-primary">₹{parseFloat(log.cost || 0).toLocaleString('en-IN')}</td>
-                                    {isManager && (
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => openEdit(log)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all outline-none" title="Edit"><Edit2 size={15} /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => handleDelete(log.id)} className="p-2 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all outline-none" title="Delete"><Trash2 size={15} /></motion.button>
-                                            </div>
-                                        </td>
-                                    )}
-                                </motion.tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Create / Edit Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
-                        <div className="p-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-text-primary">{editingLog ? 'Edit Service Record' : 'Log Service Entry'}</h3>
-                                    <p className="text-sm text-text-secondary mt-1">Record vehicle maintenance details</p>
-                                </div>
-                                <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-background text-text-secondary transition-colors outline-none"><X size={20} /></button>
+            <DataTable columns={tableColumns} rows={filteredLogs} loading={loading} colSpan={isManager ? 6 : 5}
+                emptyIcon={<Wrench size={48} />} emptyText="No maintenance records found"
+                renderRow={(log, i) => (
+                    <motion.tr key={log.id} custom={i} variants={rowVariants} initial="hidden" animate="visible"
+                        whileHover={{ backgroundColor: 'rgba(var(--color-primary) / 0.03)', x: 2 }} className="transition-colors">
+                        <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                                <motion.div whileHover={{ rotate: 15, scale: 1.1 }} className="h-9 w-9 rounded-xl bg-warning/10 flex items-center justify-center text-warning flex-shrink-0"><Truck size={15} /></motion.div>
+                                <span className="font-bold text-text-primary text-sm">{log.vehicle_name}</span>
                             </div>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {!editingLog && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Vehicle</label>
-                                        <select required value={formData.vehicle_id} onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none">
-                                            <option value="">Select vehicle...</option>
-                                            {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.license_plate})</option>)}
-                                        </select>
-                                    </div>
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Service Type</label>
-                                        <select value={formData.service_type} onChange={e => setFormData({ ...formData, service_type: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none">
-                                            {SERVICE_TYPES.map(t => <option key={t}>{t}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Cost (₹)</label>
-                                        <input required type="number" min="0" step="0.01" value={formData.cost} onChange={e => setFormData({ ...formData, cost: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
-                                    </div>
+                        </td>
+                        <td className="px-5 py-4">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-black uppercase">
+                                <Wrench size={10} /> {log.service_type}
+                            </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-text-secondary max-w-[160px] truncate">{log.description || '—'}</td>
+                        <td className="px-5 py-4 text-sm text-text-secondary">{formatSafeDate(log.service_date)}</td>
+                        <td className="px-5 py-4 font-bold text-text-primary text-sm">₹{parseFloat(log.cost || 0).toLocaleString('en-IN')}</td>
+                        {isManager && (
+                            <td className="px-5 py-4">
+                                <div className="flex items-center justify-end gap-1">
+                                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => openEdit(log)} className="btn-icon btn-ghost hover:text-primary hover:bg-primary/10"><Edit2 size={14} /></motion.button>
+                                    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => handleDelete(log.id)} className="btn-icon btn-ghost hover:text-danger hover:bg-danger/10"><Trash2 size={14} /></motion.button>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Service Date</label>
-                                    <input required type="date" value={formData.service_date} onChange={e => setFormData({ ...formData, service_date: e.target.value })} className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest pl-1">Description</label>
-                                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold text-text-primary focus:ring-2 focus:ring-primary outline-none resize-none" placeholder="Describe the service performed..." />
-                                </div>
-                                <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-text-secondary hover:bg-background transition-colors outline-none">Cancel</button>
-                                    <button type="submit" className="flex-1 py-3 rounded-xl bg-primary text-sm font-bold text-white hover:bg-blue-700 transition-colors outline-none flex items-center justify-center gap-2">
-                                        <Check size={16} /> {editingLog ? 'Save Changes' : 'Log Service'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            </td>
+                        )}
+                    </motion.tr>
+                )}
+            />
+
+            <ModalWrapper isOpen={showModal} onClose={() => setShowModal(false)}
+                title={editingLog ? 'Edit Service Record' : 'Log Service Entry'}
+                subtitle="Record vehicle maintenance details">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {!editingLog && (
+                        <FormField label="Vehicle" name="vehicle_id" type="select" value={formData.vehicle_id} onChange={fc('vehicle_id')} required>
+                            <option value="">Select vehicle...</option>
+                            {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.license_plate})</option>)}
+                        </FormField>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Service Type" name="service_type" type="select" value={formData.service_type} onChange={fc('service_type')}>
+                            {SERVICE_TYPES.map(t => <option key={t}>{t}</option>)}
+                        </FormField>
+                        <FormField label="Cost (₹)" name="cost" type="number" min="0" step="0.01" value={formData.cost} onChange={fc('cost')} required />
                     </div>
-                </div>
-            )}
+                    <FormField label="Service Date" name="service_date" type="date" value={formData.service_date} onChange={fc('service_date')} required />
+                    <FormField label="Description" name="description" type="textarea" rows={3} value={formData.description} onChange={fc('description')} placeholder="Describe the service performed..." />
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
+                        <button type="submit" className="btn-primary flex-1"><Check size={15} /> {editingLog ? 'Save Changes' : 'Log Service'}</button>
+                    </div>
+                </form>
+            </ModalWrapper>
         </div>
     );
 };

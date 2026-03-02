@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { Suspense, lazy } from 'react';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
+import CustomCursor from './components/ui/CustomCursor';
 
 // Lazy load pages
 const Login = lazy(() => import('./pages/Login'));
@@ -19,10 +20,12 @@ const AIHub = lazy(() => import('./pages/AIHub'));
 
 const SignUp = lazy(() => import('./pages/SignUp'));
 const Profile = lazy(() => import('./pages/Profile'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 function App() {
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <CustomCursor />
             <Toaster position="top-right" />
             <Suspense fallback={
                 <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -31,6 +34,7 @@ function App() {
                 </div>
             }>
                 <Routes>
+                    <Route path="/landing" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<SignUp />} />
 

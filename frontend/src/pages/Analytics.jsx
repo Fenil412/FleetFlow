@@ -2,16 +2,34 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
     Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
     BarElement, Title, Tooltip, Legend, Filler,
+    ArcElement, RadialLinearScale,
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar, Doughnut, Radar, PolarArea, Scatter } from 'react-chartjs-2';
 import * as d3 from 'd3';
 import api from '../api/axios';
-import { Download, FileText, Table, TrendingUp, Fuel, Activity, Loader2 } from 'lucide-react';
+import { Download, FileText, Table, TrendingUp, Fuel, Activity, Loader2, PieChart, Target, Zap } from 'lucide-react';
 import { downloadCSV, downloadPDF } from '../utils/exportUtils';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler, ArcElement, RadialLinearScale);
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// ── Scatter dummy: 16 vehicles with realistic fuel vs distance data
+const SCATTER_DUMMY = [
+    { name: 'TN-01-AB-1234', x: 320, y: 28 }, { name: 'MH-12-CD-5678', x: 580, y: 49 },
+    { name: 'GJ-05-EF-9012', x: 210, y: 22 }, { name: 'DL-08-GH-3456', x: 740, y: 58 },
+    { name: 'KA-03-IJ-7890', x: 490, y: 44 }, { name: 'RJ-14-KL-2345', x: 155, y: 18 },
+    { name: 'UP-32-MN-6789', x: 620, y: 63 }, { name: 'WB-06-OP-0123', x: 380, y: 34 },
+    { name: 'AP-09-QR-4567', x: 270, y: 26 }, { name: 'TN-02-ST-8901', x: 510, y: 41 },
+    { name: 'MH-04-UV-2345', x: 845, y: 72 }, { name: 'GJ-11-WX-6789', x: 430, y: 38 },
+    { name: 'HR-26-YZ-3344', x: 190, y: 20 }, { name: 'PB-10-AA-5566', x: 660, y: 56 },
+    { name: 'MP-09-BB-7788', x: 350, y: 31 }, { name: 'OD-05-CC-9900', x: 720, y: 65 },
+];
+const SCATTER_COLORS = [
+    'rgba(59,130,246,0.85)', 'rgba(139,92,246,0.85)', 'rgba(16,185,129,0.85)',
+    'rgba(245,158,11,0.85)', 'rgba(239,68,68,0.85)', 'rgba(236,72,153,0.85)',
+    'rgba(20,184,166,0.85)', 'rgba(251,146,60,0.85)',
+];
 
 // ── Color palette for the D3 heatmap ──
 const HEATMAP_COLORS = {
@@ -152,13 +170,11 @@ const DUMMY_CITY_BOOKINGS = [
     { city: 'Coimbatore', booking_count: '13', total_revenue: '26000' },
 ];
 
-// Dummy fallback for Net Daily Profit — balanced, mostly positive, realistic for March 2026
+// Dummy — 20 days with 5 loss days for realistic volatility
 const _rawProfits = [
-    4200, 3800, 5100, 4700, 6200, 5500, 3200,
-    4900, 5800, 6400, 4100, -1200, 3700, 6100,
-    5300, 4600, 7200, 6800, 5000, -800, 4300,
-    5700, 6300, 4800, 5200, 7000, 6500, 4400,
-    3900, 5600, 6700,
+    4200, 3600, 5100, -950, 6200, 5500, 3100,
+    -1800, 4900, 5800, 6400, 4100, 3700, -2200,
+    5300, 4800, 7200, -1500, 5000, 6700,
 ];
 const DUMMY_DAILY_PROFIT = _rawProfits.map((profit, i) => ({
     date: `2026-03-${String(i + 1).padStart(2, '0')}`,
@@ -512,6 +528,128 @@ const Analytics = () => {
         }],
     }), [top5]);
 
+    // ── Scatter: fuel vs distance — stable dummy data (no Math.random)
+    const scatterData = useMemo(() => ({
+        datasets: [
+            {
+                label: 'Fleet Vehicles',
+                // Always use dummy — API efficiency data has missing distance/fuel fields
+                data: SCATTER_DUMMY,
+                backgroundColor: SCATTER_DUMMY.map((_, i) => SCATTER_COLORS[i % SCATTER_COLORS.length]),
+                pointRadius: 10,
+                pointHoverRadius: 14,
+            },
+            {
+                // Trend reference line (two boundary points)
+                label: 'Avg Trend',
+                type: 'line',
+                data: [{ x: 100, y: 10 }, { x: 900, y: 78 }],
+                borderColor: 'rgba(255,255,255,0.18)',
+                borderWidth: 1.5,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false,
+            },
+        ],
+    }), []);
+
+    // ── Trip Completion Rate line (weekly, stable dummy)
+    const tripCompletionData = useMemo(() => ({
+        labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6', 'Wk 7', 'Wk 8'],
+        datasets: [
+            {
+                label: 'Completed (%)',
+                data: [88, 91, 85, 93, 90, 87, 95, 92],
+                borderColor: 'rgba(16,185,129,1)',
+                backgroundColor: 'rgba(16,185,129,0.12)',
+                fill: true, tension: 0.45, pointRadius: 5, pointBackgroundColor: '#10B981',
+            },
+            {
+                label: 'Cancelled (%)',
+                data: [8, 6, 11, 5, 7, 9, 3, 6],
+                borderColor: 'rgba(239,68,68,0.9)',
+                backgroundColor: 'rgba(239,68,68,0.08)',
+                fill: true, tension: 0.45, pointRadius: 5, pointBackgroundColor: '#EF4444',
+                borderDash: [5, 4],
+            },
+        ],
+    }), []);
+
+    // ── Stacked monthly revenue vs costs — always dummy for balanced display
+    const STACKED_MONTHS = [
+        { month: 'Oct', revenue: 780000, fuel: 108000, maintenance: 48000 },
+        { month: 'Nov', revenue: 920000, fuel: 131000, maintenance: 57000 },
+        { month: 'Dec', revenue: 860000, fuel: 122000, maintenance: 53000 },
+        { month: 'Jan', revenue: 1050000, fuel: 148000, maintenance: 65000 },
+        { month: 'Feb', revenue: 1180000, fuel: 162000, maintenance: 72000 },
+        { month: 'Mar', revenue: 1320000, fuel: 178000, maintenance: 80000 },
+    ];
+    const stackedMonthlyData = useMemo(() => ({
+        labels: STACKED_MONTHS.map(r => r.month),
+        datasets: [
+            { label: 'Revenue', data: STACKED_MONTHS.map(r => r.revenue), backgroundColor: 'rgba(16,185,129,0.78)', borderRadius: 6 },
+            { label: 'Fuel Cost', data: STACKED_MONTHS.map(r => r.fuel), backgroundColor: 'rgba(245,158,11,0.78)', borderRadius: 6 },
+            { label: 'Maintenance', data: STACKED_MONTHS.map(r => r.maintenance), backgroundColor: 'rgba(239,68,68,0.78)', borderRadius: 6 },
+        ],
+    }), []);
+
+    // ── Doughnut: cost breakdown
+    const doughnutData = useMemo(() => {
+        const fuelSum = efficiencyData.reduce((s, v) => s + parseFloat(v.total_cost || 0), 0) || 320000;
+        const maintenanceSum = roiData.reduce((s, v) => s + parseFloat(v.maintenance_cost || 0), 0) || 180000;
+        const driverSum = roiData.length * 35000 || 245000;
+        const insuranceSum = roiData.length * 12000 || 96000;
+        return {
+            labels: ['Fuel', 'Maintenance', 'Driver Pay', 'Insurance'],
+            datasets: [{
+                data: [fuelSum, maintenanceSum, driverSum, insuranceSum],
+                backgroundColor: ['rgba(245,158,11,0.85)', 'rgba(239,68,68,0.85)', 'rgba(59,130,246,0.85)', 'rgba(139,92,246,0.85)'],
+                borderColor: ['rgba(245,158,11,1)', 'rgba(239,68,68,1)', 'rgba(59,130,246,1)', 'rgba(139,92,246,1)'],
+                borderWidth: 2,
+                hoverOffset: 10,
+            }],
+        };
+    }, [efficiencyData, roiData]);
+
+    // ── Radar: fleet performance dimensions
+    const radarData = useMemo(() => ({
+        labels: ['On-Time Rate', 'Fuel Efficiency', 'Safety Score', 'Utilization', 'Maintenance', 'Revenue Gen'],
+        datasets: [
+            {
+                label: 'This Month',
+                data: [78, 65, 88, utilizationRate ? parseFloat(utilizationRate) : 72, 81, avgRoi ? Math.min(100, parseFloat(avgRoi) * 5) : 68],
+                backgroundColor: 'rgba(59,130,246,0.2)',
+                borderColor: 'rgba(59,130,246,0.9)',
+                pointBackgroundColor: '#3B82F6',
+                pointRadius: 5,
+            },
+            {
+                label: 'Last Month',
+                data: [71, 59, 82, 65, 76, 60],
+                backgroundColor: 'rgba(139,92,246,0.15)',
+                borderColor: 'rgba(139,92,246,0.7)',
+                pointBackgroundColor: '#8B5CF6',
+                pointRadius: 5,
+                borderDash: [5, 5],
+            },
+        ],
+    }), [utilizationRate, avgRoi]);
+
+    // ── Polar Area: service category spend
+    const polarData = useMemo(() => ({
+        labels: ['Oil Change', 'Tire Service', 'Engine Repair', 'Electrical', 'Brake Service', 'Inspection'],
+        datasets: [{
+            data: [42000, 68000, 115000, 39000, 55000, 28000],
+            backgroundColor: [
+                'rgba(16,185,129,0.75)', 'rgba(59,130,246,0.75)', 'rgba(239,68,68,0.75)',
+                'rgba(245,158,11,0.75)', 'rgba(139,92,246,0.75)', 'rgba(236,72,153,0.75)',
+            ],
+            borderWidth: 0,
+        }],
+    }), []);
+
+    const commonOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 11, weight: '600' }, boxWidth: 12, padding: 12 } } } };
+
     const lineChartOpts = useMemo(() => ({
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
@@ -697,6 +835,119 @@ const Analytics = () => {
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* ── ROW 3: Doughnut + Radar ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Cost Breakdown Doughnut */}
+                    <div className="bg-card rounded-3xl p-8 shadow-sm border border-border flex flex-col">
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                                <PieChart size={18} className="text-warning" />
+                                <h4 className="text-lg font-extrabold text-text-primary uppercase tracking-tight">Operational Cost Breakdown</h4>
+                            </div>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">Fleet spend distribution by category</p>
+                        </div>
+                        <div className="h-72 flex items-center justify-center">
+                            <Doughnut data={doughnutData} options={{ ...commonOpts, cutout: '68%', plugins: { ...commonOpts.plugins, legend: { position: 'right', labels: { font: { size: 11, weight: '600' }, boxWidth: 12, padding: 14 } } } }} />
+                        </div>
+                    </div>
+
+                    {/* Radar: Fleet Performance Dimensions */}
+                    <div className="bg-card rounded-3xl p-8 shadow-sm border border-border flex flex-col">
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Target size={18} className="text-primary" />
+                                <h4 className="text-lg font-extrabold text-text-primary uppercase tracking-tight">Performance Radar</h4>
+                            </div>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">Multi-dimensional fleet KPI comparison</p>
+                        </div>
+                        <div className="h-72">
+                            <Radar data={radarData} options={{ ...commonOpts, scales: { r: { ticks: { backdropColor: 'transparent', font: { size: 9, weight: '600' } }, grid: { color: 'rgba(128,128,128,0.1)' }, pointLabels: { font: { size: 10, weight: '700' } } } } }} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── ROW 4: Stacked Bar + Polar Area ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Stacked Monthly Revenue vs Costs */}
+                    <div className="bg-card rounded-3xl p-8 shadow-sm border border-border flex flex-col">
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                                <TrendingUp size={18} className="text-success" />
+                                <h4 className="text-lg font-extrabold text-text-primary uppercase tracking-tight">Revenue vs Cost — Monthly</h4>
+                            </div>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">Stacked comparison: income vs expenditure</p>
+                        </div>
+                        <div className="h-72">
+                            <Bar data={stackedMonthlyData} options={{ ...commonOpts, plugins: { ...commonOpts.plugins, legend: { position: 'top', labels: { font: { size: 10, weight: '700' }, boxWidth: 10, padding: 10 } } }, scales: { x: { stacked: false, grid: { display: false }, ticks: { font: { size: 9, weight: '600' } } }, y: { beginAtZero: true, grid: { color: 'rgba(128,128,128,0.05)' }, ticks: { callback: v => `₹${(v / 1000).toFixed(0)}K`, font: { size: 9, weight: '600' } } } } }} />
+                        </div>
+                    </div>
+
+                    {/* Polar Area: Service Category Spend */}
+                    <div className="bg-card rounded-3xl p-8 shadow-sm border border-border flex flex-col">
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Zap size={18} className="text-danger" />
+                                <h4 className="text-lg font-extrabold text-text-primary uppercase tracking-tight">Maintenance by Category</h4>
+                            </div>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">Service spend polar distribution (₹)</p>
+                        </div>
+                        <div className="h-72">
+                            <PolarArea data={polarData} options={{ ...commonOpts, scales: { r: { ticks: { backdropColor: 'transparent', font: { size: 8, weight: '600' } }, grid: { color: 'rgba(128,128,128,0.1)' } } }, plugins: { ...commonOpts.plugins, legend: { position: 'right', labels: { font: { size: 10, weight: '600' }, boxWidth: 11, padding: 10 } } } }} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── ROW 5: Scatter + Trip Completion Rate ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    {/* Scatter — Fuel vs Distance */}
+                    <div className="bg-card rounded-3xl p-8 shadow-sm border border-border flex flex-col">
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Fuel size={18} className="text-violet-400" />
+                                <h4 className="text-lg font-extrabold text-text-primary uppercase tracking-tight">Fuel vs Distance Scatter</h4>
+                            </div>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">Each dot = one vehicle · outliers (top-right) are least efficient</p>
+                        </div>
+                        <div className="h-72">
+                            <Scatter data={scatterData} options={{
+                                ...commonOpts,
+                                plugins: {
+                                    ...commonOpts.plugins,
+                                    legend: { display: false },
+                                    tooltip: { callbacks: { label: ctx => `${ctx.raw.name || 'Vehicle'}: ${ctx.raw.x} km · ${ctx.raw.y} L` } },
+                                },
+                                scales: {
+                                    x: { title: { display: true, text: 'Distance (km)', font: { size: 10, weight: '700' } }, grid: { color: 'rgba(128,128,128,0.06)' }, ticks: { font: { size: 9, weight: '600' } } },
+                                    y: { title: { display: true, text: 'Fuel consumed (L)', font: { size: 10, weight: '700' } }, grid: { color: 'rgba(128,128,128,0.06)' }, ticks: { font: { size: 9, weight: '600' } } }
+                                }
+                            }} />
+                        </div>
+                    </div>
+
+                    {/* Trip Completion Rate — Line */}
+                    <div className="bg-card rounded-3xl p-8 shadow-sm border border-border flex flex-col">
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Activity size={18} className="text-success" />
+                                <h4 className="text-lg font-extrabold text-text-primary uppercase tracking-tight">Trip Completion Rate</h4>
+                            </div>
+                            <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">Weekly completed vs cancelled percentage</p>
+                        </div>
+                        <div className="h-72">
+                            <Line data={tripCompletionData} options={{
+                                ...commonOpts,
+                                plugins: { ...commonOpts.plugins, legend: { position: 'top', labels: { font: { size: 10, weight: '700' }, boxWidth: 10, padding: 10 } } },
+                                scales: {
+                                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(128,128,128,0.05)' }, ticks: { callback: v => `${v}%`, font: { size: 9, weight: '600' } } },
+                                    x: { grid: { display: false }, ticks: { font: { size: 9, weight: '700' } } }
+                                }
+                            }} />
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
