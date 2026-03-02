@@ -22,14 +22,34 @@ const app = express();
 
 // Middleware
 app.use(helmet());
+// Formulate Allowed Origins
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://fleet-flow-amber.vercel.app"
 ];
 
+// Automatically fix missing 'https://' in process.env.CORS_ORIGIN
+if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== "*") {
+    const envOrigin = process.env.CORS_ORIGIN.trim();
+    const formattedOrigin = envOrigin.startsWith("http") ? envOrigin : `https://${envOrigin}`;
+    if (!allowedOrigins.includes(formattedOrigin)) {
+        allowedOrigins.push(formattedOrigin);
+    }
+}
+
 app.use(cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl)
+        if (!origin) return callback(null, true);
+
+        // Allow if in exact list OR if it's a Vercel preview deployment
+        if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]

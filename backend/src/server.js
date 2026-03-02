@@ -4,15 +4,29 @@ import { Server } from 'socket.io';
 import app from './app.js';
 
 const server = http.createServer(app);
-const allowedOrigins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://fleet-flow-amber.vercel.app"
-];
-
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins,
+        origin: function (origin, callback) {
+            if (!origin) return callback(null, true);
+
+            const allowedOrigins = [
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "https://fleet-flow-amber.vercel.app"
+            ];
+
+            if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== "*") {
+                const envOrigin = process.env.CORS_ORIGIN.trim();
+                const formattedOrigin = envOrigin.startsWith("http") ? envOrigin : `https://${envOrigin}`;
+                allowedOrigins.push(formattedOrigin);
+            }
+
+            if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         methods: ["GET", "POST"],
         credentials: true
     }

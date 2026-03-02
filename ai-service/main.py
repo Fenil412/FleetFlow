@@ -103,15 +103,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+cors_origin = os.getenv("CORS_ORIGIN", "").strip()
+
 allowed_origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://fleet-flow-amber.vercel.app"
 ]
 
+if cors_origin and cors_origin != "*":
+    formatted_origin = cors_origin if cors_origin.startswith("http") else f"https://{cors_origin}"
+    if formatted_origin not in allowed_origins:
+        allowed_origins.append(formatted_origin)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
