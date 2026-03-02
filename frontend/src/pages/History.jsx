@@ -56,7 +56,7 @@ const History = () => {
                     type: 'maintenance',
                     action: 'Maintenance Logged',
                     detail: `${m.service_type} — ${m.vehicle_name || `Vehicle #${m.vehicle_id}`}`,
-                    secondary: `Cost: $${parseFloat(m.cost || 0).toFixed(2)} · Date: ${formatSafeDate(m.service_date)}`,
+                    secondary: `Cost: ₹${parseFloat(m.cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Date: ${formatSafeDate(m.service_date)}`,
                     status: 'IN_SHOP',
                     date: m.created_at,
                 }));
@@ -65,7 +65,7 @@ const History = () => {
                     id: `fuel-${f.id}`,
                     type: 'fuel',
                     action: 'Fuel Log Added',
-                    detail: `${parseFloat(f.liters || 0).toFixed(1)}L @ $${parseFloat(f.cost || 0).toFixed(2)} — Vehicle #${f.vehicle_id}`,
+                    detail: `${parseFloat(f.liters || 0).toFixed(1)}L @ ₹${parseFloat(f.cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} — Vehicle #${f.vehicle_id}`,
                     secondary: `Odometer: ${f.odometer_km ? `${f.odometer_km} km` : 'N/A'}`,
                     status: 'LOGGED',
                     date: f.fuel_date || f.created_at,
