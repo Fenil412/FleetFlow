@@ -232,4 +232,200 @@ ISC License — see [LICENSE](LICENSE)
 
 ---
 
+## 🗃️ Database ER Diagram
+
+```mermaid
+erDiagram
+    ROLES {
+        int     id PK
+        string  name
+    }
+    USERS {
+        int     id PK
+        int     role_id FK
+        string  name
+        string  email
+        string  password_hash
+        string  phone
+        string  avatar_url
+        string  otp
+        datetime otp_expires_at
+        datetime created_at
+    }
+    VEHICLES {
+        int     id PK
+        string  name
+        string  license_plate
+        string  type
+        string  status
+        int     capacity_tons
+        int     odometer_km
+        datetime created_at
+    }
+    DRIVERS {
+        int     id PK
+        string  name
+        string  license_number
+        datetime license_expiry
+        string  status
+        decimal safety_score
+        string  phone
+        datetime created_at
+    }
+    TRIPS {
+        int     id PK
+        int     vehicle_id FK
+        int     driver_id FK
+        int     created_by FK
+        string  origin
+        string  destination
+        string  status
+        decimal cargo_weight_tons
+        decimal revenue_inr
+        datetime scheduled_at
+        datetime completed_at
+    }
+    MAINTENANCE_LOGS {
+        int     id PK
+        int     vehicle_id FK
+        string  service_type
+        decimal cost_inr
+        string  notes
+        datetime service_date
+    }
+    FUEL_LOGS {
+        int     id PK
+        int     vehicle_id FK
+        int     trip_id FK
+        decimal litres
+        decimal cost_per_litre_inr
+        decimal total_cost_inr
+        datetime logged_at
+    }
+    DRIVER_PERFORMANCE {
+        int     id PK
+        int     trip_id FK
+        int     driver_id FK
+        decimal rating
+        string  notes
+        datetime recorded_at
+    }
+    AUDIT_LOGS {
+        int     id PK
+        int     user_id FK
+        string  action
+        string  entity_type
+        int     entity_id
+        jsonb   changes
+        datetime created_at
+    }
+
+    ROLES      ||--o{ USERS              : "has"
+    USERS      ||--o{ TRIPS              : "creates"
+    VEHICLES   ||--o{ TRIPS              : "assigned to"
+    DRIVERS    ||--o{ TRIPS              : "drives"
+    VEHICLES   ||--o{ MAINTENANCE_LOGS  : "serviced in"
+    VEHICLES   ||--o{ FUEL_LOGS         : "fuelled in"
+    TRIPS      ||--o{ FUEL_LOGS         : "linked to"
+    TRIPS      ||--o{ DRIVER_PERFORMANCE: "evaluated in"
+    DRIVERS    ||--o{ DRIVER_PERFORMANCE: "rated in"
+    USERS      ||--o{ AUDIT_LOGS        : "generates"
+```
+
+---
+
+## 🏛️ System Architecture
+
+```mermaid
+flowchart TD
+    subgraph CLIENT["🖥️ Client (Browser)"]
+        LP[Landing Page\nPublic SaaS homepage]
+        DA[Dashboard & Analytics\nReact 18 + Vite + Framer Motion]
+        AIH[AI Intelligence Hub\nEditable JSON + live inference]
+    end
+
+    subgraph FRONTEND["⚛️ Frontend Layer (Vercel / Netlify)"]
+        RC[React Router v6\nProtected + role-based routes]
+        CTX[Context\nAuthContext · ThemeContext]
+        AX[Axios Instance\n/api/* proxy]
+        SIO_C[Socket.io Client\nReal-time events]
+    end
+
+    subgraph BACKEND["🟢 Node.js / Express 5 (Render)"]
+        API[REST API\n/auth /vehicles /drivers\n/trips /fuel /maintenance\n/analytics]
+        PX[AI Proxy\n/api/ai/* → port 8001]
+        SOCK[Socket.io Server\nFleet status broadcasts]
+        MW[Middleware\nJWT · RBAC · Helmet · CORS]
+    end
+
+    subgraph AI["🐍 Python FastAPI (Render / port 8001)"]
+        EP8[8 Endpoints\nmaintenance · fuel · delay\neco-score · driver · carbon\nroute · anomaly]
+        ML[Trained Models\n.pkl — RandomForest · GBM\nIsolationForest]
+    end
+
+    subgraph DATA["🗄️ Data Layer"]
+        PG[(PostgreSQL\nNeon.tech)]
+        CDN[(Cloudinary\nProfile Photos)]
+        EJS[(EmailJS\nOTP · Welcome)]
+    end
+
+    subgraph SIM["🚛 IoT Simulator (optional)"]
+        VS[vehicleSimulator.py\n12 Indian city routes\nLive telemetry every 3s]
+    end
+
+    LP & DA & AIH --> RC --> CTX & AX & SIO_C
+    AX -->|HTTPS REST| API
+    AX -->|via backend| PX
+    SIO_C <-->|WebSocket| SOCK
+    API --> MW --> PG & CDN & EJS
+    PX -->|HTTP JSON| EP8 --> ML
+    VS -->|Push telemetry| EP8
+    VS -->|Socket events| SOCK
+```
+
+---
+
+## 📚 References & Credits
+
+### Frameworks & Libraries
+| Resource | Purpose | Link |
+|----------|---------|------|
+| React | Frontend UI framework | [react.dev](https://react.dev) |
+| Vite | Build tool | [vitejs.dev](https://vitejs.dev) |
+| Tailwind CSS | Utility-first CSS | [tailwindcss.com](https://tailwindcss.com) |
+| Framer Motion | Animations | [framer.com/motion](https://www.framer.com/motion/) |
+| Chart.js | Data charts | [chartjs.org](https://www.chartjs.org) |
+| D3.js | India SVG heatmap | [d3js.org](https://d3js.org) |
+| Express.js | Node.js web framework | [expressjs.com](https://expressjs.com) |
+| FastAPI | Python API framework | [fastapi.tiangolo.com](https://fastapi.tiangolo.com) |
+| scikit-learn | ML models | [scikit-learn.org](https://scikit-learn.org) |
+| Socket.io | Real-time WebSockets | [socket.io](https://socket.io) |
+| Lucide React | Icon library | [lucide.dev](https://lucide.dev) |
+| jsPDF | PDF export | [github.com/parallax/jsPDF](https://github.com/parallax/jsPDF) |
+| React Hot Toast | Toast notifications | [react-hot-toast.com](https://react-hot-toast.com) |
+| Cloudinary | Image CDN | [cloudinary.com](https://cloudinary.com) |
+| EmailJS | Email service | [emailjs.com](https://emailjs.com) |
+| Neon | Serverless PostgreSQL | [neon.tech](https://neon.tech) |
+| Axios | HTTP client | [axios-http.com](https://axios-http.com) |
+
+### Datasets Used for AI Training
+| Dataset | Source | Used For |
+|---------|--------|---------|
+| Logistics Dataset (92k rows) | Kaggle | Predictive maintenance, delivery delay |
+| CO2 Emissions Canada | [Open Canada](https://open.canada.ca) | Fuel CO2 prediction, anomaly detection |
+| EPA Vehicle Fuel Economy | [fueleconomy.gov](https://www.fueleconomy.gov/feg/download.shtml) | Vehicle eco score grading |
+
+### Geographic Data
+| Asset | Source |
+|-------|--------|
+| India State GeoJSON | [geohacker/india](https://github.com/geohacker/india) — used for D3 heatmap |
+| City lat/lng coordinates | Curated manually for 20+ Indian cities |
+
+### Design Inspiration
+- [Vercel Dashboard](https://vercel.com/dashboard) — SaaS layout patterns
+- [Linear.app](https://linear.app) — Sidebar & navigation UX
+- [Tremor](https://tremor.so) — Analytics card design language
+
+---
+
 *Built with ❤️ for efficient Indian fleet operations — all monetary values in ₹ (Indian Rupee)*
