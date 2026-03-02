@@ -1,54 +1,85 @@
-# FleetFlow — AI Service
+# FleetFlow — AI Microservice
 
-This microservice provides 7 machine-learning and rule-based endpoints built with Python and FastAPI. It processes real-time telemetry pushed from the FleetFlow backend and the vehicle simulator.
+**Python FastAPI** microservice providing 8 ML and rule-based inference endpoints. Integrated into the FleetFlow frontend via the **AI Intelligence Hub** and consumed by the Node.js backend proxy.
 
-## 🧠 Available AI Models
+---
 
-| Endpoint | Type | Description |
-|---|---|---|
-| `POST /predict/maintenance` | RandomForest | Predicts vehicle breakdown risk based on engine temp, vibration, and usage hours. |
-| `POST /predict/fuel` | GBM + IsolationForest | Predicts expected CO2 emissions and flags fuel consumption anomalies (theft/leaks). |
-| `POST /predict/delay` | RandomForest Regressor | Estimates exact delivery delay hours based on live weather and route traffic. |
-| `POST /predict/eco-score` | GradientBoosting | Grades a vehicle (A-F) against EPA standards for overall fuel economy. |
-| `POST /predict/driver-score` | Deep Logic Engine | Analyzes speeding, braking, and idling events to score driver safety. |
-| `POST /predict/carbon` | Deterministic | Calculates scope 1 carbon emissions from fuel volume and type. |
-| `POST /predict/route` | Deterministic | Physics-based travel time estimation based on distance, load, and road type. |
+## 🧠 Available Models
+
+| Endpoint | Algorithm | Dataset |
+|----------|-----------|---------|
+| `POST /predict/maintenance` | RandomForest Classifier | logistics_dataset (92k rows) |
+| `POST /predict/fuel` | GradientBoosting Regressor | CO2 Emissions Canada |
+| `POST /predict/fuel-anomaly` | IsolationForest | CO2 Emissions Canada |
+| `POST /predict/delay` | RandomForest Regressor | logistics_dataset |
+| `POST /predict/eco-score` | GradientBoosting Regressor | EPA Vehicle Database |
+| `POST /predict/driver-score` | Rule-based Logic Engine | Live telemetry events |
+| `POST /predict/carbon` | Deterministic formula | Diesel/Petrol emission factors |
+| `POST /predict/route` | Physics-based model | Traffic + weather + load |
+
+---
 
 ## 📁 Directory Structure
 
 ```text
 ai-service/
-├── main.py                # FastAPI ASGI application & route handlers
-├── schemas.py             # Pydantic input validation models
-├── train_all.py           # Auto-train script to build .pkl files
+├── main.py                # FastAPI app + all 8 route handlers
+├── schemas.py             # Pydantic v2 request/response models
+├── train_all.py           # One-shot trainer → outputs .pkl to /models
 ├── utils/
 │   └── preprocessing.py   # Feature engineering & scaling pipelines
-├── datasets/              # Original CSV data for training
-├── models/                # Auto-generated scikit-learn .pkl models
-├── .env                   # Environment variables (Port, API Keys)
-└── requirements.txt       # Python dependencies
+├── datasets/              # Source CSVs for training
+│   ├── logistics_dataset_with_maintenance_required.csv
+│   ├── CO2 Emissions_Canada.csv
+│   └── database.csv
+├── models/                # Auto-generated .pkl files (git-ignored)
+│   ├── maintenance.pkl
+│   ├── fuel_co2.pkl
+│   ├── fuel_anomaly.pkl
+│   ├── delay_model.pkl
+│   └── eco_score_model.pkl
+├── .env
+├── .env.sample
+└── requirements.txt
 ```
+
+---
 
 ## 🚀 Setup & Launch
 
 1. **Install dependencies:**
-    ```bash
-    py -m pip install -r requirements.txt
-    ```
+   ```bash
+   py -m pip install -r requirements.txt
+   ```
 
-2. **Train the models (One-time setup):**
-    *This script reads the CSVs in `/datasets` and outputs optimized models to `/models`.*
-    ```bash
-    py train_all.py
-    ```
+2. **Configure `.env`:**
+   ```bash
+   cp .env.sample .env
+   # Set PORT=8001, any API keys if needed
+   ```
 
-3. **Start the FastAPI Server:**
-    ```bash
-    py -m uvicorn main:app --reload --port 8001
-    ```
-    *The API will be available at `http://localhost:8001`*
+3. **Train all models (one-time, ~2–5 min):**
+   ```bash
+   py train_all.py
+   ```
+
+4. **Start the server:**
+   ```bash
+   py -m uvicorn main:app --reload --port 8001
+   ```
+   API available at **`http://localhost:8001`**
+
+---
 
 ## 📚 API Documentation
 
-FastAPI automatically generates an interactive Swagger UI. Once the server is running, visit:
+FastAPI auto-generates interactive Swagger docs:
+
 👉 **[http://localhost:8001/docs](http://localhost:8001/docs)**
+
+---
+
+## 🔗 Integration
+
+- The **Node.js backend** proxies all `/api/ai/*` requests to this service — frontend never calls this directly in production.
+- The **IoT Vehicle Simulator** (`simulator/vehicleSimulator.py`) can push live telemetry to `/predict/maintenance` and `/predict/driver-score` every 3 seconds.

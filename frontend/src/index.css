@@ -55,7 +55,17 @@
     outline-offset: 2px;
     border-radius: 6px;
   }
+
+  /* Vertically center text in all inputs on all screen sizes */
+  input,
+  select,
+  textarea {
+    box-sizing: border-box;
+    vertical-align: middle;
+    line-height: normal;
+  }
 }
+
 
 /* ─── Keyframe Animations ─────────────────────────────── */
 @keyframes float {

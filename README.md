@@ -6,7 +6,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/License-ISC-yellow)](LICENSE)
 
-FleetFlow is a **full-stack enterprise fleet management + AI system** built with React + Node.js + PostgreSQL + Python FastAPI. It covers real-time vehicle tracking, trip dispatch, maintenance scheduling, fuel analysis, financial analytics (in ₹), and a complete AI layer with trained ML models for predictive maintenance, fuel anomaly detection, delivery delay prediction, driver scoring, carbon tracking, route optimization, and a live IoT vehicle simulator.
+FleetFlow is a **full-stack enterprise fleet management platform** built with React 18 + Node.js + PostgreSQL + Python FastAPI. It covers real-time vehicle tracking, trip dispatch, maintenance scheduling, fuel analysis, rich financial analytics (in ₹), and a complete AI layer with trained ML models for predictive maintenance, fuel anomaly detection, delivery delay prediction, driver scoring, carbon tracking, and route optimization — all wrapped in a modern, mobile-first SaaS dashboard UI.
 
 ---
 
@@ -17,31 +17,30 @@ FleetFlow is a **full-stack enterprise fleet management + AI system** built with
 |--------|-----------|
 | 🚗 **Fleet Management** | Vehicle lifecycle, multi-type (Truck/Van/Bike), odometer & capacity |
 | 👨‍✈️ **Driver Management** | License expiry, safety score (0–5), status tracking |
-| 🗺️ **Trip Dispatch** | DRAFT → DISPATCHED → COMPLETED flow, cargo weight validation, revenue in ₹ |
+| 🗺️ **Trip Dispatch** | DRAFT → DISPATCHED → COMPLETED flow, cargo validation, revenue in ₹ |
 | 🔧 **Maintenance** | Service scheduling, cost tracking, auto vehicle status update |
 | ⛽ **Fuel Management** | Cost per litre, trip-linked logs, efficiency metrics — all in ₹ |
-| 📊 **Analytics** | Dashboard KPIs, vehicle ROI, monthly financials, PDF/CSV export — ₹ |
+| 📊 **Analytics** | 9 chart types + D3 India heatmap, PDF/CSV export — all in ₹ |
 | 🔐 **Auth & RBAC** | JWT, bcrypt, 4 roles (Fleet Manager / Dispatcher / Safety Officer / Financial Analyst) |
 | 👤 **User Profile** | Photo upload via Cloudinary, edit name/phone, change password |
-| 📧 **Email Notifications** | Welcome and OTP flow via EmailJS |
+| 📧 **Email** | Welcome + OTP flow via EmailJS |
 | ⚡ **Real-time** | Socket.io for live fleet-wide status updates |
-| 🌙 **Dark Theme** | Full dark-mode with light-mode toggle across all pages |
-
-| 🧠 **AI Intelligence Hub** | Centralized Master-Detail UI with adjustable JSON payloads to run real-time inference against 7 models. |
+| 🌙 **Theming** | Full dark/light mode across all pages |
+| 🖱️ **Custom Cursor** | Theme-aware 56px ring cursor (indigo glow dark / deep indigo light) |
+| 🧠 **AI Intelligence Hub** | Master-Detail UI to run real-time inference against 8 AI models |
 
 ### 🧠 AI Services (Python FastAPI — port 8001)
-*Fully integrated into the frontend via the interactive **AI Intelligence Hub** with editable telemetry forms and dynamic result parsing.*
 
-| Service | Type | Dataset Used |
-|---------|------|-------------|
-| 🔧 **Predictive Maintenance** | RandomForest Classifier | logistics_dataset (92k rows) |
-| ⛽ **Fuel CO2 Prediction** | GradientBoosting Regressor | CO2 Emissions Canada |
-| 🚨 **Fuel Anomaly Detection** | IsolationForest | CO2 Emissions Canada |
-| ⏱️ **Delivery Delay Prediction** | RandomForest Regressor | logistics_dataset |
-| 🌿 **Vehicle Eco Score** | GradientBoosting Regressor | EPA Vehicle Database |
-| 👨‍✈️ **Driver Behaviour Score** | Deep Logic Engine | Live telemetry events |
-| 💨 **Carbon Emission Tracking** | Formula-based | Diesel/Petrol emission factors |
-| 🛣️ **Route Time Estimation** | Physics-based model | Traffic + weather + load |
+| Service | Type | Dataset |
+|---------|------|---------|
+| 🔧 Predictive Maintenance | RandomForest Classifier | logistics_dataset (92k rows) |
+| ⛽ Fuel CO2 Prediction | GradientBoosting Regressor | CO2 Emissions Canada |
+| 🚨 Fuel Anomaly Detection | IsolationForest | CO2 Emissions Canada |
+| ⏱️ Delivery Delay Prediction | RandomForest Regressor | logistics_dataset |
+| 🌿 Vehicle Eco Score | GradientBoosting Regressor | EPA Vehicle Database |
+| 👨‍✈️ Driver Behaviour Score | Deep Logic Engine | Live telemetry events |
+| 💨 Carbon Emission Tracking | Deterministic formula | Diesel/Petrol factors |
+| 🛣️ Route Time Estimation | Physics-based model | Traffic + weather + load |
 
 ---
 
@@ -49,68 +48,36 @@ FleetFlow is a **full-stack enterprise fleet management + AI system** built with
 
 ```
 FleetFlow/
-│
-├── frontend/                        # React 18 + Vite
-│   ├── public/                      # Static assets
-│   ├── src/
-│   │   ├── api/                     # Axios API clients (auth, vehicles, ai, etc.)
-│   │   ├── assets/                  # CSS, Images, Icons
-│   │   ├── components/              # Reusable UI components (animated with Framer Motion)
-│   │   │   ├── layout/              # Sidebar, Topbar, DashboardLayout
-│   │   │   └── ui/                  # Cards, Modals, Buttons
-│   │   ├── context/                 # AuthContext & state management
-│   │   ├── pages/                   # AIHub, Dashboard, Vehicles, Drivers, Trips, Fuel...
-│   │   ├── App.jsx                  # Main routing (react-router-dom)
-│   │   └── main.jsx                 # React DOM entry point
-│   ├── .env                         # Frontend env variables (VITE_API_URL)
-│   └── package.json
-├── backend/                         # Node.js + Express (port 3000)
+├── frontend/                    # React 18 + Vite (port 5173)
 │   └── src/
-│       ├── app.js                   # Express app + /api/ai proxy routes
-│       ├── routes/
-│       │   ├── ai.routes.js         # → Proxies all /api/ai/* to AI service
-│       │   ├── auth.routes.js
-│       │   ├── vehicle.routes.js
-│       │   ├── driver.routes.js
-│       │   ├── trip.routes.js
-│       │   ├── maintenance.routes.js
-│       │   ├── fuel.routes.js
-│       │   └── analytics.routes.js
+│       ├── components/
+│       │   ├── layout/          # Sidebar, Topbar, DashboardLayout
+│       │   └── ui/              # CustomCursor, StatCard, DataTable, Modal...
+│       ├── context/             # ThemeContext, AuthContext
+│       ├── pages/
+│       │   ├── landing/         # Public landing page + auth-aware navbar
+│       │   ├── Analytics.jsx    # 9 charts + D3 India heatmap
+│       │   └── AIHub.jsx        # Interactive AI inference dashboard
+│       └── index.css            # Design tokens + global styles
+│
+├── backend/                     # Node.js + Express 5 (port 3000)
+│   └── src/
+│       ├── routes/              # Auth, Vehicles, Drivers, Trips, Fuel, Analytics, AI proxy
 │       ├── controllers/
 │       ├── services/
-│       ├── middleware/
-│       └── sockets/                 # Socket.io real-time
+│       ├── middleware/          # JWT auth, RBAC, error handler
+│       └── sockets/            # Socket.io fleet events
 │
-├── ai-service/                      # Python FastAPI (port 8001)
-│   ├── main.py                      # All 7 AI endpoints
-│   ├── schemas.py                   # Pydantic request/response models
-│   ├── requirements.txt
-│   ├── train_all.py                 # One-shot model trainer
-│   │
-│   ├── datasets/                    # Your 4 CSV datasets
-│   │   ├── logistics_dataset_with_maintenance_required.csv
-│   │   ├── CO2 Emissions_Canada.csv
-│   │   ├── database.csv
-│   │   └── Data Description.csv
-│   │
-│   ├── models/                      # Trained .pkl files (auto-generated)
-│   │   ├── maintenance.pkl
-│   │   ├── fuel_co2.pkl
-│   │   ├── fuel_anomaly.pkl
-│   │   ├── delay_model.pkl
-│   │   └── eco_score_model.pkl
-│   │
-│   ├── training/
-│   │   ├── train_maintenance.py
-│   │   ├── train_fuel.py
-│   │   └── train_delay.py
-│   │
-│   └── utils/
-│       └── preprocessing.py         # Feature engineering pipelines
+├── ai-service/                  # Python FastAPI (port 8001)
+│   ├── main.py                  # 8 AI endpoints
+│   ├── schemas.py               # Pydantic models
+│   ├── train_all.py             # One-shot model trainer
+│   ├── datasets/                # Training CSVs
+│   ├── models/                  # Auto-generated .pkl files
+│   └── utils/                   # Feature engineering
 │
-├── simulator/                       # IoT Vehicle Telemetry Simulator
-│   ├── vehicleSimulator.py          # Multi-threaded simulator (12 Indian city routes)
-│   └── logs/                        # CSV session logs (auto-created)
+├── simulator/                   # IoT Vehicle Telemetry Simulator
+│   └── vehicleSimulator.py      # Multi-threaded, 12 Indian city routes
 │
 └── README.md
 ```
@@ -123,9 +90,8 @@ FleetFlow/
 - **Node.js** 18+ and **npm** 9+
 - **PostgreSQL** 14+ (or [Neon](https://neon.tech) cloud)
 - **Python** 3.10+ with `py` launcher
-- An **EmailJS** account — [emailjs.com](https://emailjs.com)
-
----
+- **EmailJS** account — [emailjs.com](https://emailjs.com)
+- **Cloudinary** account for photo uploads
 
 ### 1. Clone
 ```bash
@@ -133,121 +99,38 @@ git clone https://github.com/Fenil412/FleetFlow.git
 cd FleetFlow
 ```
 
----
-
-### 2. Database Setup (Neon PostgreSQL)
-1. Create a [Neon](https://neon.tech) project and copy your `DATABASE_URL`
-2. Initialize the schema:
-```bash
-cd backend
-npm run db:init
-```
-
----
-
-### 3. Backend Setup
+### 2. Backend
 ```bash
 cd backend
 npm install
 cp .env.sample .env
-# Edit .env with DATABASE_URL, JWT_SECRET, Cloudinary keys, EmailJS keys
-npm run dev
+# Fill in DATABASE_URL, JWT_SECRET, CLOUDINARY_*, EMAILJS_*, FRONTEND_URL
+npm run db:init   # one-time schema setup
+npm run dev       # http://localhost:3000
 ```
-**Backend:** `http://localhost:3000`
 
----
-
-### 4. Frontend Setup
+### 3. Frontend
 ```bash
 cd frontend
 npm install
-npm run dev
+# .env: VITE_API_URL=http://localhost:3000/api  VITE_SOCKET_URL=http://localhost:3000
+npm run dev       # http://localhost:5173
 ```
-**Frontend:** `http://localhost:5173`
 
----
-
-### 5. AI Service Setup
+### 4. AI Service
 ```bash
 cd ai-service
-
-# Install Python dependencies
 py -m pip install -r requirements.txt
-
-# Environment Setup
 cp .env.sample .env
-
-# Train all ML models (takes 2–5 min, one-time only)
-py train_all.py
-
-# Start AI server
-py -m uvicorn main:app --reload --port 8001
+py train_all.py                              # one-time training (~2–5 min)
+py -m uvicorn main:app --reload --port 8001  # http://localhost:8001
 ```
-**AI Service:** `http://localhost:8001`  
-**Swagger UI:** `http://localhost:8001/docs`
 
----
-
-### 6. Vehicle Simulator (Optional)
+### 5. Vehicle Simulator (optional)
 ```bash
 cd simulator
-
-# Console mode — 3 vehicles
-py vehicleSimulator.py
-
-# 5 vehicles + push telemetry to AI APIs
-py vehicleSimulator.py --vehicles 5 --push-api
-
-# Export session to CSV log
-py vehicleSimulator.py --vehicles 3 --export-csv
-
-# Full demo mode
 py vehicleSimulator.py --vehicles 5 --push-api --export-csv
 ```
-
----
-
-## 📡 API Reference
-
-### 🔐 Authentication
-```
-POST /api/auth/register               # Register new user
-POST /api/auth/login                  # Login → returns JWT
-POST /api/auth/forgot-password        # Send OTP to email
-POST /api/auth/verify-otp             # Verify OTP
-POST /api/auth/reset-password         # Set new password
-GET  /api/auth/profile                # Get own profile       [protected]
-PATCH /api/auth/profile               # Update name/phone     [protected]
-POST /api/auth/profile/avatar         # Upload photo (Cloudinary) [protected]
-PATCH /api/auth/profile/password      # Change password       [protected]
-```
-
-### 🚗 Vehicles / Drivers / Trips / Maintenance / Fuel
-```
-GET|POST|PATCH|DELETE  /api/vehicles
-GET|POST|PATCH|DELETE  /api/drivers
-GET|POST|PATCH|DELETE  /api/trips
-GET|POST|PATCH|DELETE  /api/maintenance
-GET|POST|PATCH|DELETE  /api/fuel
-GET  /api/analytics/dashboard         # KPIs
-GET  /api/analytics/vehicle-roi       # Per-vehicle ROI (₹)
-GET  /api/analytics/monthly-financials
-GET  /api/analytics/driver-performance
-```
-
-### 🧠 AI Endpoints (via Node backend proxy `/api/ai/*`)
-```
-POST /api/ai/maintenance     # Predictive maintenance risk
-POST /api/ai/fuel            # CO2 prediction + anomaly detection
-POST /api/ai/delay           # Delivery delay estimation
-POST /api/ai/eco-score       # Vehicle fuel economy grade (A–F)
-POST /api/ai/driver-score    # Driver behaviour score (0–100)
-POST /api/ai/carbon          # Carbon emission in kg + trees to offset
-POST /api/ai/route           # Route ETA with traffic/weather/load
-GET  /api/ai/health          # AI service health check
-GET  /api/ai/models          # Loaded model status
-```
-> Or call the AI service directly at `http://localhost:8001`
 
 ---
 
@@ -256,12 +139,11 @@ GET  /api/ai/models          # Loaded model status
 ### Frontend
 | Package | Purpose |
 |---------|---------|
-| React 18 + Vite | UI framework + build tool |
-| Framer Motion | Page transitions, stagger, 3D animations |
-| Tailwind CSS | Utility-first styling |
-| React Router DOM 6 | Client-side routing |
-| Recharts / Chart.js | Analytics charts |
-| Lucide React | Icons |
+| React 18 + Vite | UI + build |
+| Framer Motion | Animations, 3D effects |
+| Tailwind CSS | Utility styling |
+| Chart.js + react-chartjs-2 | 9 chart types (Line, Bar, Doughnut, Radar, PolarArea, Scatter, Stacked, Line-fill) |
+| D3.js | India SVG heatmap |
 | Socket.io Client | Real-time updates |
 | jsPDF + autotable | PDF export |
 
@@ -269,22 +151,22 @@ GET  /api/ai/models          # Loaded model status
 | Package | Purpose |
 |---------|---------|
 | Express 5 | Web framework |
-| pg | PostgreSQL client |
+| pg | PostgreSQL |
 | jsonwebtoken + bcryptjs | Auth |
 | Socket.io | WebSocket server |
 | Multer + Cloudinary | File uploads |
-| Helmet + Morgan | Security + logging |
+| Helmet | Security headers |
 
 ### AI Service (Python)
 | Package | Purpose |
 |---------|---------|
 | FastAPI + Uvicorn | API framework |
-| scikit-learn | ML models (RF, GBM, IsolationForest) |
+| scikit-learn | ML models |
 | pandas + numpy | Data processing |
 | joblib | Model serialization |
-| Pydantic v2 | Request/response validation |
+| Pydantic v2 | Validation |
 
-### Database
+### Database Schema
 | Table | Description |
 |-------|-------------|
 | `roles` | RBAC roles |
@@ -301,69 +183,46 @@ GET  /api/ai/models          # Loaded model status
 
 ## 🔒 Security
 
-- **JWT** — 7-day stateless auth tokens
-- **bcrypt** — password hashing (10 salt rounds)
-- **RBAC middleware** — route-level role enforcement
-- **Parameterized queries** — SQL injection prevention
-- **Helmet** — HTTP security headers
-- **OTP expiry** — 10-minute window
-
----
-
-## 🤖 AI Architecture
-
-```
-React Dashboard
-      ↓
-Node.js Backend (port 3000)  ← /api/ai/* proxy routes
-      ↓  ↑ JSON
-Python FastAPI (port 8001)
-      ↓
-9 Trained ML Models (.pkl)
-      ↑
-Vehicle Simulator → pushes live telemetry every 3s
-```
-
-### Simulator Data Flow
-The `vehicleSimulator.py` generates realistic IoT telemetry for any number of vehicles travelling between **12 Indian cities** (Mumbai, Delhi, Bangalore, Hyderabad, Chennai, Kolkata, Pune, Ahmedabad…) and automatically:
-- Detects anomalies (overheating, low fuel, vibration spikes)
-- Pushes to `/predict/maintenance` and `/predict/driver-score`
-- Exports session CSV with 26 sensor fields per tick
-
----
-
-## 🗺️ Roadmap
-
-- [x] ~~GPS live tracking integration~~ *(simulator with 12 India city routes)*
-- [x] ~~Predictive maintenance ML~~ *(RandomForest — 92k rows, live)*
-- [x] ~~Fuel anomaly detection~~ *(IsolationForest)*
-- [x] ~~Driver behaviour scoring~~ *(formula engine)*
-- [x] ~~Carbon emission tracking~~ *(real emission factors)*
-- [x] ~~IoT telematics simulation~~ *(vehicleSimulator.py)*
-- [ ] OpenRouteService / Google Maps integration
-- [ ] AI Fleet Assistant (LangChain + LLM)
-- [ ] Mobile-responsive PWA
-- [ ] Multi-tenant / multi-company support
-- [ ] Automated scheduled reports
+- JWT — 7-day stateless auth tokens
+- bcrypt — 10 salt rounds
+- RBAC middleware — route-level role enforcement
+- Parameterized SQL — injection prevention
+- Helmet — HTTP security headers
+- OTP — 10-minute expiry window
+- CORS — locked to `FRONTEND_URL` in production
 
 ---
 
 ## 🚀 Production Deployment
 
 ```bash
-# Backend — PM2
-npm install -g pm2
-cd backend
-NODE_ENV=production pm2 start src/server.js --name fleetflow-api
+# Backend (Render)
+NODE_ENV=production node src/server.js
 
-# AI Service — Gunicorn
-cd ai-service
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8001
+# AI Service (Render)
+gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8001
 
-# Frontend — Static build
-cd frontend && npm run build
-# Serve dist/ with nginx / Vercel / Netlify
+# Frontend (Vercel)
+npm run build   # serves dist/ via Vercel
 ```
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Predictive maintenance ML
+- [x] Fuel anomaly detection
+- [x] Driver behaviour scoring
+- [x] Carbon emission tracking
+- [x] IoT telematics simulation
+- [x] Mobile-first SaaS dashboard redesign
+- [x] Custom theme-aware cursor
+- [x] 9 Analytics chart types + D3 India heatmap
+- [ ] OpenRouteService / Google Maps live GPS
+- [ ] AI Fleet Assistant (LangChain + LLM)
+- [ ] PWA offline support
+- [ ] Multi-tenant / multi-company support
+- [ ] Automated scheduled reports
 
 ---
 

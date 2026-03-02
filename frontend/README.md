@@ -1,67 +1,113 @@
 # FleetFlow — React Frontend
 
-This folder contains the **React 18 / Vite** frontend for FleetFlow. It is a modern, highly interactive, dark-themed dashboard application built with Tailwind CSS and Framer Motion.
+A modern, mobile-first **SaaS dashboard** built with React 18 + Vite. Features a fully responsive enterprise UI with glassmorphism, 3D animations, Framer Motion transitions, and a rich analytics suite.
+
+---
 
 ## 🛠️ Tech Stack
-- **Framework:** React 18 + Vite
-- **Routing:** React Router DOM V6 (Lazy loaded nested routes)
-- **Styling:** Tailwind CSS (Vanilla CSS variables in `index.css`)
-- **Animations:** Framer Motion (Page transitions, 3D hover effects)
-- **Icons:** Lucide-React
-- **API Client:** Axios
-- **Real-time Data:** Socket.io Client
-- **Charts:** Recharts
-- **PDF Generation:** jsPDF + autotable
-- **Notifications:** React Hot Toast
+
+| Package | Purpose |
+|---------|---------|
+| React 18 + Vite | UI framework + blazing-fast build |
+| React Router DOM v6 | Nested lazy-loaded routing |
+| Tailwind CSS | Utility-first design system |
+| Framer Motion | Page transitions, stagger, 3D hover |
+| Lucide React | Icon set |
+| Axios | API client |
+| Socket.io Client | Real-time fleet updates |
+| Chart.js + react-chartjs-2 | 7 chart types (Line, Bar, Doughnut, Radar, PolarArea, Scatter, Stacked) |
+| D3.js | India Heatmap (booking geography) |
+| React Hot Toast | Toast notifications |
+| jsPDF + autotable | PDF export |
+
+---
 
 ## 📁 Directory Structure
 
 ```text
 frontend/
-├── public/                 # Static assets (images, fonts, manifest)
+├── public/               # Static assets
 ├── src/
-│   ├── api/                # Axios API clients for Backend & AI endpoints
-│   ├── assets/             # Global CSS and raw graphic assets
+│   ├── api/              # Axios instances (axios.js, ai.js)
 │   ├── components/
-│   │   ├── layout/         # Sidebar, Topbar, Dashboard wrapper
-│   │   └── ui/             # Reusable UI (Cards, Buttons, Modals, Spinners)
-│   ├── context/            # React Context (Auth context, User state)
-│   ├── hooks/              # Custom React Hooks
-│   ├── pages/              # Main Route Views
-│   │   ├── AIHub.jsx       # 🧠 Master-Detail AI interactive UI
-│   │   ├── Dashboard.jsx   # Live KPI charts & Socket streams
-│   │   ├── Vehicles.jsx    # Fleet inventory
-│   │   ├── Drivers.jsx     # Staff listing
-│   │   ├── Trips.jsx       # Dispatch and logistics
-│   │   ├── FuelLogs.jsx    # Expenses and emissions (₹) 
-│   │   └── Maintenance.jsx # Service tracking
-│   ├── App.jsx             # React Router configuration
-│   └── main.jsx            # React DOM Mount (Root)
-├── .env                    # Vite Environment variables
-├── postcss.config.js       # Tailwind PostCSS
-├── tailwind.config.js      # Custom theme colors and screens
-└── vite.config.js          # Development server and proxy config
+│   │   ├── layout/       # Sidebar (collapsible + tooltips), Topbar, DashboardLayout
+│   │   └── ui/           # CustomCursor, PageHeader, StatCard, DataTable,
+│   │                     # ModalWrapper, FormField, EmptyState
+│   ├── context/          # ThemeContext (dark/light), AuthContext
+│   ├── features/auth/    # AuthContext, ProtectedRoute
+│   ├── pages/
+│   │   ├── landing/      # LandingPage + LandingNavbar (public)
+│   │   ├── Dashboard.jsx
+│   │   ├── Vehicles.jsx
+│   │   ├── Drivers.jsx
+│   │   ├── Trips.jsx
+│   │   ├── Maintenance.jsx
+│   │   ├── FuelLogs.jsx
+│   │   ├── Analytics.jsx # 7 chart types + D3 India heatmap
+│   │   ├── History.jsx
+│   │   ├── AIHub.jsx     # Interactive AI inference UI
+│   │   ├── About.jsx
+│   │   └── Profile.jsx
+│   ├── routes/           # ProtectedRoute with RBAC
+│   ├── utils/            # exportUtils (CSV/PDF)
+│   ├── App.jsx           # Router + CustomCursor mount
+│   ├── main.jsx          # React DOM entry
+│   └── index.css         # Design tokens, global utilities
+├── .env
+├── postcss.config.js
+├── tailwind.config.js
+└── vite.config.js
 ```
+
+---
+
+## 🎨 Design System
+
+- **Color tokens** — `--color-primary`, `--color-card`, `--color-border`, etc., with full dark/light switching
+- **Custom Cursor** — 56px ring + 14px dot, theme-aware (indigo glow dark / deep indigo light), works on all screen sizes
+- **Reusable components** — `PageHeader`, `StatCard` (3D tilt), `DataTable` (skeleton + empty state), `ModalWrapper` (AnimatePresence), `FormField`
+- **Landing Page** — Full SaaS homepage with hero, features, animations, D3 charts, auth-aware navbar
+
+---
 
 ## 🚀 Setup & Launch
 
 1. **Install dependencies:**
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
-2. **Configure Environment:**
-    Ensure your `.env` file points to the Node backend API url:
-    ```bash
-    VITE_API_URL=http://localhost:5001/api
-    VITE_SOCKET_URL=http://localhost:5001
-    ```
+2. **Configure `.env`:**
+   ```env
+   VITE_API_URL=http://localhost:3000/api
+   VITE_SOCKET_URL=http://localhost:3000
+   ```
 
-3. **Start Development Server:**
-    ```bash
-    npm run dev
-    ```
-    *The site runs on `http://localhost:5173`. Make sure the Node server is running on `:5001` or the API requests will fail.*
+3. **Start dev server:**
+   ```bash
+   npm run dev
+   ```
+   Runs on **`http://localhost:5173`**. Ensure the backend is running on `:3000`.
 
-## 🧠 AI Hub Interface
-The `AIHub.jsx` page is a complex Master-Detail component mapping to 7 distinct AI models parsed through the backend. It features dynamic, editable input form schemas mapped uniquely to each model.
+4. **Production build:**
+   ```bash
+   npm run build
+   # Deploy dist/ to Vercel / Netlify / nginx
+   ```
+
+---
+
+## 📊 Analytics Page — Chart Types
+
+| Chart | Metric |
+|-------|--------|
+| Line | Fleet Efficiency Index (L/100km) |
+| Bar | Top 5 Lifecycle Costs |
+| Bar | Net Daily Profit (current month) |
+| Doughnut | Operational Cost Breakdown |
+| Radar | Multi-KPI Performance (this vs last month) |
+| Stacked Bar | Monthly Revenue vs Fuel Cost vs Maintenance |
+| Polar Area | Maintenance by Service Category |
+| Scatter | Fuel consumption vs Distance (per vehicle) |
+| Line | Weekly Trip Completion Rate |
+| D3 SVG | India Geographic Booking Heatmap |

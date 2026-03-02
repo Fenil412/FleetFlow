@@ -253,7 +253,7 @@ const AIHub = () => {
                                                         type={originalType === 'number' ? 'number' : 'text'}
                                                         value={value}
                                                         onChange={(e) => handlePayloadChange(key, e.target.value, originalType)}
-                                                        className="w-full sm:w-1/2 bg-background border border-border/50 rounded-lg px-3 py-1.5 text-sm font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all text-right !appearance-none"
+                                                        className="w-full sm:w-1/2 bg-background border border-border/50 rounded-lg px-3 py-2.5 text-sm font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all text-center"
                                                     />
                                                 </div>
                                             );
